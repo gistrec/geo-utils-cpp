@@ -14,8 +14,9 @@ using Poly = bg::model::polygon<Pt>;
 
 int main(int argc, char** argv) {
     if (argc < 5) return 1;
-    Pt a(std::atof(argv[2]), std::atof(argv[1]));  // (lng, lat)
-    Pt b(std::atof(argv[4]), std::atof(argv[3]));
+    char* end;
+    Pt a(std::strtod(argv[2], &end), std::strtod(argv[1], &end));  // (lng, lat)
+    Pt b(std::strtod(argv[4], &end), std::strtod(argv[3], &end));
     Poly poly;
     bg::append(poly.outer(), Pt{-74.1, 40.7});
     bg::append(poly.outer(), Pt{-74.1, 40.8});

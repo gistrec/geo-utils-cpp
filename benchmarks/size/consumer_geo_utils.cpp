@@ -6,12 +6,14 @@
 #include <cstdlib>
 #include <vector>
 
-#include <geo/geo.hpp>
+#include <geo/poly.hpp>
+#include <geo/spherical.hpp>
 
 int main(int argc, char** argv) {
     if (argc < 5) return 1;
-    geo::LatLng a(std::atof(argv[1]), std::atof(argv[2]));
-    geo::LatLng b(std::atof(argv[3]), std::atof(argv[4]));
+    char* end;
+    geo::LatLng a(std::strtod(argv[1], &end), std::strtod(argv[2], &end));
+    geo::LatLng b(std::strtod(argv[3], &end), std::strtod(argv[4], &end));
     std::vector<geo::LatLng> poly = {
         {40.7, -74.1}, {40.8, -74.1}, {40.8, -74.0}, {40.7, -74.0},
     };

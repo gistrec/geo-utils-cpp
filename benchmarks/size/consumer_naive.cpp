@@ -49,8 +49,9 @@ bool contains(LL p, const std::vector<LL>& poly) {
 
 int main(int argc, char** argv) {
     if (argc < 5) return 1;
-    LL a{std::atof(argv[1]), std::atof(argv[2])};
-    LL b{std::atof(argv[3]), std::atof(argv[4])};
+    char* end;
+    LL a{std::strtod(argv[1], &end), std::strtod(argv[2], &end)};
+    LL b{std::strtod(argv[3], &end), std::strtod(argv[4], &end)};
     std::vector<LL> poly = {
         {40.7, -74.1}, {40.8, -74.1}, {40.8, -74.0}, {40.7, -74.0},
     };

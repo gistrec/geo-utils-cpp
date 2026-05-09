@@ -2,10 +2,15 @@
 // Licensed under the Apache License, Version 2.0
 //
 // S2 Geometry equivalents. S2 uses a sphere, same as us — apples-to-apples
-// comparison on accuracy. Where the API forces a different shape (input is
-// 3D unit vector S2Point, not lat/lng), we include the conversion in the
-// timed loop because that is the realistic cost when the data comes from
-// outside as lat/lng.
+// comparison on accuracy.
+//
+// Conversion policy:
+//   * Streams of points (distance, contains queries, path_length): converted
+//     INSIDE the timed loop. The input is naturally lat/lng; the cost of
+//     reaching S2Point is part of the realistic cost.
+//   * Long-lived geometry (the polygon used by contains/area): pre-converted
+//     ONCE outside the loop. Matches the typical "geofence loaded once,
+//     queried many times" pattern.
 //
 // Note: S2 does not ship a public initial-bearing function, so the heading
 // benchmark is intentionally absent — this is itself information for the
@@ -57,7 +62,7 @@ static void BM_S2_DistanceBetween(benchmark::State& state) {
 }
 BENCHMARK(BM_S2_DistanceBetween)->Arg(1000)->Arg(100000);
 
-// --- contains: polygon converted once outside the loop ---------------------
+// --- contains: polygon converted once; queries converted inside the loop --
 
 static void BM_S2_Contains(benchmark::State& state) {
     const auto poly_ll = geo::bench::regular_polygon(
@@ -66,14 +71,13 @@ static void BM_S2_Contains(benchmark::State& state) {
     loop->Normalize();  // S2Loop expects CCW; Normalize flips if needed.
 
     const auto queries_ll = geo::bench::queries_around(40.0, -74.0, 5.0, 1000);
-    const auto queries = to_s2_points(queries_ll);
 
     for (auto _ : state) {
-        for (const auto& q : queries) {
-            benchmark::DoNotOptimize(loop->Contains(q));
+        for (const auto& q : queries_ll) {
+            benchmark::DoNotOptimize(loop->Contains(to_s2_point(q)));
         }
     }
-    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries_ll.size()));
 }
 BENCHMARK(BM_S2_Contains)->Arg(10)->Arg(100)->Arg(1000);
 
@@ -93,12 +97,12 @@ static void BM_S2_Area(benchmark::State& state) {
 }
 BENCHMARK(BM_S2_Area)->Arg(10)->Arg(100)->Arg(1000);
 
-// --- path_length -----------------------------------------------------------
+// --- path_length: input is lat/lng; convert + sum inside the timed loop ---
 
 static void BM_S2_PathLength(benchmark::State& state) {
     const auto path_ll = geo::bench::random_points(static_cast<std::size_t>(state.range(0)));
-    const S2Polyline line(to_s2_points(path_ll));
     for (auto _ : state) {
+        S2Polyline line(to_s2_points(path_ll));
         benchmark::DoNotOptimize(S2Earth::ToMeters(line.GetLength()));
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));

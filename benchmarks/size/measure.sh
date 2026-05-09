@@ -22,6 +22,8 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 TMP="$(mktemp -d)"
+LOG_DIR="${ROOT_DIR}/build-bench/size-logs"
+ANY_FAILURE=0
 trap 'rm -rf "${TMP}"' EXIT
 
 is_macos() { [ "$(uname)" = "Darwin" ]; }
@@ -62,11 +64,18 @@ build() {
     # name, source, extra_flags...
     local name="$1"; shift
     local source="$1"; shift
-    local out="${TMP}/${name// /_}"
-    if "${CXX}" ${CXXFLAGS} ${EXTRA_LD} "${source}" -o "${out}" "$@" 2>"${TMP}/${name}.log"; then
+    local safe_name="${name// /_}"
+    local out="${TMP}/${safe_name}"
+    local log="${TMP}/${safe_name}.log"
+    if "${CXX}" ${CXXFLAGS} ${EXTRA_LD} "${source}" -o "${out}" "$@" 2>"${log}"; then
         strip "${out}" 2>/dev/null || true
         file_size "${out}"
     else
+        # Persist the failure log so the user can diagnose after the trap
+        # cleans up TMP.
+        mkdir -p "${LOG_DIR}"
+        cp "${log}" "${LOG_DIR}/${safe_name}.log"
+        ANY_FAILURE=1
         echo ""  # signals "skipped"
     fi
 }
@@ -154,4 +163,6 @@ echo "  - 'Installed' for geo-utils-cpp is the include/ directory (everything"
 echo "    you ship). For other libraries it's the package install prefix on"
 echo "    Homebrew (or the geometry subset for Boost) — what the user must"
 echo "    have on disk to consume the library."
-echo "  - Build logs (if any) are in: ${TMP} (kept until script exit)"
+if [ "${ANY_FAILURE}" = "1" ]; then
+    echo "  - Some builds failed. Diagnostic logs preserved in: ${LOG_DIR}"
+fi

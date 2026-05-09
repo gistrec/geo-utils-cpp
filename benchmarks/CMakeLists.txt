@@ -19,7 +19,8 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
     google_benchmark
-    URL https://github.com/google/benchmark/archive/v1.8.4.tar.gz
+    URL      https://github.com/google/benchmark/archive/v1.8.4.tar.gz
+    URL_HASH SHA256=3e7059b6b11fb1bbe28e33e02519398ca94c1818874ebed18e504dc6f709be45
     DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(google_benchmark)
@@ -54,8 +55,9 @@ _geo_utils_cpp_add_bench(naive     speed/bench_naive.cpp)
 # --- Optional: S2 Geometry --------------------------------------------------
 #
 # vcpkg port name: `s2geometry`. Homebrew formula: `s2geometry`. The CMake
-# package is conventionally exported as `s2`.
-find_package(s2 QUIET)
+# package is conventionally exported as `s2`, but case-sensitive filesystems
+# may also see `S2Config.cmake` from some installs — accept either.
+find_package(s2 NAMES s2 S2 QUIET)
 if(s2_FOUND)
     _geo_utils_cpp_add_bench(s2 speed/bench_s2.cpp s2::s2)
     message(STATUS "geo-utils-cpp benchmarks: S2 found — bench_s2 enabled.")
@@ -73,9 +75,9 @@ if(POLICY CMP0167)
     cmake_policy(SET CMP0167 NEW)
 endif()
 
-find_package(Boost 1.70 QUIET CONFIG)
+find_package(Boost 1.71 QUIET CONFIG)
 if(NOT Boost_FOUND)
-    find_package(Boost 1.70 QUIET)
+    find_package(Boost 1.71 QUIET)
 endif()
 
 if(Boost_FOUND)

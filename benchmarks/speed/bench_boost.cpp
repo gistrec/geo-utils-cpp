@@ -4,8 +4,19 @@
 // Boost.Geometry equivalents using `cs::spherical_equatorial<degree>` —
 // the same sphere-based model we use, so this is a fair head-to-head.
 //
+// Conversion policy (matches bench_s2.cpp):
+//   * Streams of points: converted INSIDE the timed loop.
+//   * Long-lived polygon: pre-converted ONCE outside the loop.
+//
 // Coordinate convention reminder: Boost.Geometry expects (lng, lat) order
 // for spherical_equatorial points.
+//
+// Strategy note for `contains`: bg::within with cs::spherical_equatorial
+// auto-selects strategy::within::spherical_winding, which traces great-circle
+// edges and classifies crossings carefully. Our own `geo::contains` defaults
+// to rhumb-line edges (geodesic=false), which is significantly cheaper.
+// The performance gap on `contains` reflects this algorithmic difference,
+// not a Boost misconfiguration.
 
 #include <benchmark/benchmark.h>
 
@@ -85,7 +96,7 @@ static void BM_Boost_Heading(benchmark::State& state) {
 }
 BENCHMARK(BM_Boost_Heading)->Arg(1000)->Arg(100000);
 
-// --- contains (within) -----------------------------------------------------
+// --- contains: polygon converted once; queries converted inside the loop --
 
 static void BM_Boost_Contains(benchmark::State& state) {
     const auto poly_ll = geo::bench::regular_polygon(
@@ -93,16 +104,13 @@ static void BM_Boost_Contains(benchmark::State& state) {
     const Polygon poly = to_boost_polygon(poly_ll);
 
     const auto queries_ll = geo::bench::queries_around(40.0, -74.0, 5.0, 1000);
-    std::vector<Point> queries;
-    queries.reserve(queries_ll.size());
-    for (const auto& q : queries_ll) queries.push_back(to_boost_point(q));
 
     for (auto _ : state) {
-        for (const auto& q : queries) {
-            benchmark::DoNotOptimize(bg::within(q, poly));
+        for (const auto& q : queries_ll) {
+            benchmark::DoNotOptimize(bg::within(to_boost_point(q), poly));
         }
     }
-    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries_ll.size()));
 }
 BENCHMARK(BM_Boost_Contains)->Arg(10)->Arg(100)->Arg(1000);
 
@@ -122,13 +130,13 @@ static void BM_Boost_Area(benchmark::State& state) {
 }
 BENCHMARK(BM_Boost_Area)->Arg(10)->Arg(100)->Arg(1000);
 
-// --- path_length -----------------------------------------------------------
+// --- path_length: input is lat/lng; convert + sum inside the timed loop ---
 
 static void BM_Boost_PathLength(benchmark::State& state) {
     const auto path_ll = geo::bench::random_points(static_cast<std::size_t>(state.range(0)));
-    const LineString ls = to_boost_linestring(path_ll);
     bg::strategy::distance::haversine<double> haversine(kEarthRadius);
     for (auto _ : state) {
+        LineString ls = to_boost_linestring(path_ll);
         benchmark::DoNotOptimize(bg::length(ls, haversine));
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));

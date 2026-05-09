@@ -12,9 +12,10 @@
 int main(int argc, char** argv) {
     if (argc < 5) return 1;
     double s12 = 0.0;
+    char* end;
     GeographicLib::Geodesic::WGS84().Inverse(
-        std::atof(argv[1]), std::atof(argv[2]),
-        std::atof(argv[3]), std::atof(argv[4]),
+        std::strtod(argv[1], &end), std::strtod(argv[2], &end),
+        std::strtod(argv[3], &end), std::strtod(argv[4], &end),
         s12);
     std::printf("%.1f -1\n", s12);
     return 0;

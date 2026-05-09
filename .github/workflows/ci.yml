@@ -71,3 +71,13 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
+
+      # Smoke-build the dependency-free portion of the benchmarks so that
+      # changes to benchmarks/CMakeLists.txt or the bench source files can't
+      # silently break the build. We don't run the benchmarks here — that
+      # requires installing S2/Boost/GeographicLib and is intentionally
+      # out-of-scope for CI.
+      - name: Smoke-build benchmarks (no external deps)
+        run: |
+          cmake -S . -B build-bench -DGEO_UTILS_CPP_BUILD_BENCHMARKS=ON -DGEO_UTILS_CPP_BUILD_TESTS=OFF -DGEO_UTILS_CPP_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-bench --config Release --target bench_geo_utils bench_naive

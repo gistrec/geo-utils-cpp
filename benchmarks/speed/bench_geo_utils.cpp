@@ -6,7 +6,8 @@
 #include <cstddef>
 #include <vector>
 
-#include <geo/geo.hpp>
+#include <geo/poly.hpp>
+#include <geo/spherical.hpp>
 
 #include "random_data.hpp"
 

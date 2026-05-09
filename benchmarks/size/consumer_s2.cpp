@@ -13,8 +13,9 @@
 
 int main(int argc, char** argv) {
     if (argc < 5) return 1;
-    const auto a = S2LatLng::FromDegrees(std::atof(argv[1]), std::atof(argv[2])).ToPoint();
-    const auto b = S2LatLng::FromDegrees(std::atof(argv[3]), std::atof(argv[4])).ToPoint();
+    char* end;
+    const auto a = S2LatLng::FromDegrees(std::strtod(argv[1], &end), std::strtod(argv[2], &end)).ToPoint();
+    const auto b = S2LatLng::FromDegrees(std::strtod(argv[3], &end), std::strtod(argv[4], &end)).ToPoint();
     std::vector<S2Point> verts = {
         S2LatLng::FromDegrees(40.7, -74.1).ToPoint(),
         S2LatLng::FromDegrees(40.8, -74.1).ToPoint(),
