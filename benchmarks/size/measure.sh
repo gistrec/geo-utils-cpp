@@ -23,7 +23,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 TMP="$(mktemp -d)"
 LOG_DIR="${ROOT_DIR}/build-bench/size-logs"
-ANY_FAILURE=0
+# build() runs inside command substitution, so plain shell variables can't
+# propagate failure state back to the parent. Use a sentinel file instead.
+FAILURE_MARKER="${TMP}/.any_failure"
 trap 'rm -rf "${TMP}"' EXIT
 
 is_macos() { [ "$(uname)" = "Darwin" ]; }
@@ -75,7 +77,7 @@ build() {
         # cleans up TMP.
         mkdir -p "${LOG_DIR}"
         cp "${log}" "${LOG_DIR}/${safe_name}.log"
-        ANY_FAILURE=1
+        : > "${FAILURE_MARKER}"
         echo ""  # signals "skipped"
     fi
 }
@@ -163,6 +165,6 @@ echo "  - 'Installed' for geo-utils-cpp is the include/ directory (everything"
 echo "    you ship). For other libraries it's the package install prefix on"
 echo "    Homebrew (or the geometry subset for Boost) — what the user must"
 echo "    have on disk to consume the library."
-if [ "${ANY_FAILURE}" = "1" ]; then
+if [ -f "${FAILURE_MARKER}" ]; then
     echo "  - Some builds failed. Diagnostic logs preserved in: ${LOG_DIR}"
 fi

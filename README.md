@@ -146,7 +146,7 @@ tiny disk footprint thanks to header-only + zero dependencies.
 
 | Library              | `distance_between` (M pairs/s) | `contains` (poly N=10, M qps) | Install size  |
 | -------------------- | -----------------------------: | ----------------------------: | ------------: |
-| **geo-utils-cpp**    |                       **39.5** |                      **15.9** |     **32 KB** |
+| **geo-utils-cpp**    |                       **39.5** |                      **15.9** |     **36 KB** |
 | naive haversine      |                           37.4 |                            —  |             0 |
 | S2 Geometry          |                           15.1 |                          12.9 |       32.8 MB |
 | Boost.Geometry       |                           38.4 |                           1.85|       12.3 MB |
@@ -157,7 +157,7 @@ per-pair ops (`distance`, `heading`) within noise; ahead on polygon ops
 (`area`, `path_length`, `contains` for tiny polygons). Faster than S2 on
 `distance`, `heading`, `area`, `path_length`, and on `contains` against
 ~10-vertex polygons. **S2 wins `contains` from ~100 vertices onward** via
-its bounding-rectangle prefilter. **144–1000× smaller install footprint**
+its bounding-rectangle prefilter. **130–900× smaller install footprint**
 than the alternatives. Zero overhead over hand-written haversine.
 
 See [docs/benchmarks.md](docs/benchmarks.md) for the full methodology, all

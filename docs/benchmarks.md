@@ -15,9 +15,9 @@ For build and run instructions see [`benchmarks/README.md`](../benchmarks/README
   than GeographicLib's WGS84 geodesic — but **less accurate**, on a
   sphere. Matches hand-written haversine within noise: zero header-only
   overhead.
-- **Disk footprint.** **32 KB** of headers vs **32.8 MB** for S2 (with
+- **Disk footprint.** **36 KB** of headers vs **32.8 MB** for S2 (with
   abseil), **12.3 MB** for Boost.Geometry's `geometry` subset alone,
-  **4.6 MB** for GeographicLib — a ~144–1000× difference in what you have
+  **4.6 MB** for GeographicLib — a ~130–900× difference in what you have
   to ship or have on disk.
 - **Where competitors win.** As soon as `contains` polygons reach ~100
   vertices, S2's bounding-rectangle prefilter plus a tightly inlined
@@ -112,7 +112,7 @@ much lower throughput throughout.
 
 If your workload involves polygons of ~100+ vertices queried at any volume,
 S2 wins `contains`. If it's "tiny polygons, or you can't ship a 33 MB
-dependency", we beat both S2 and Boost.Geometry, with a ~1000× smaller
+dependency", we beat both S2 and Boost.Geometry, with a ~900× smaller
 install.
 
 ### `area` (M polygons/s × vertex count)
@@ -148,7 +148,7 @@ plus the on-disk install size of each library. Smaller is better.
 
 | Library              | Stripped binary | Library install | Notes                              |
 | -------------------- | --------------: | --------------: | ---------------------------------- |
-| **geo-utils-cpp**    |       **33 KB** |       **32 KB** | header-only, zero deps             |
+| **geo-utils-cpp**    |       **33 KB** |       **36 KB** | header-only, zero deps             |
 | naive haversine      |       **33 KB** |               0 | hand-written, no library           |
 | S2 Geometry          |     **33.4 KB** |       32.8 MB   | S2 7.1 MB + abseil 14 MB (+ rest)  |
 | Boost.Geometry       |         50.8 KB |       12.3 MB   | only the `geometry` subset of Boost |
@@ -160,7 +160,7 @@ use the library. For `geo-utils-cpp` that's the whole `include/` directory
 prefix from Homebrew. Boost is reported as just its `geometry` headers —
 the full Boost install is ~362 MB.
 
-**The on-disk gap is roughly 144× to 1000×.** If binary size matters
+**The on-disk gap is roughly 130× to 900×.** If binary size matters
 (embedded, container layers, mobile bundles), this is the headline.
 
 ## Where each library is the right tool
