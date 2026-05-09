@@ -139,6 +139,27 @@ int main() {
 }
 ```
 
+## Benchmarks
+
+`geo-utils-cpp` is a near-zero-overhead wrapper over the math itself, with a
+tiny disk footprint thanks to header-only + zero dependencies.
+
+| Library              | `distance_between` (M pairs/s) | `contains` (poly N=100, M qps) | Install size  |
+| -------------------- | -----------------------------: | -----------------------------: | ------------: |
+| **geo-utils-cpp**    |                       **36.7** |                       **2.17** |     **32 KB** |
+| naive haversine      |                           37.0 |                            —   |             0 |
+| S2 Geometry          |                           14.3 |                          18.0  |       32.8 MB |
+| Boost.Geometry       |                           40.0 |                           0.23 |       12.3 MB |
+| GeographicLib        |                            1.2 |                  no native PIP |        4.6 MB |
+
+Apple M1 · clang 17 · `-O2 -DNDEBUG`. We're tied with hand-written haversine
+on raw math, ~7× faster than Boost.Geometry on point-in-polygon, and have a
+**144–1000× smaller install footprint** than the alternatives. S2 wins on
+large-polygon containment thanks to spatial indexing.
+
+See [docs/benchmarks.md](docs/benchmarks.md) for the full methodology, all
+operations, and a discussion of when to reach for each library.
+
 ## API Reference
 
 See [docs/api.md](docs/api.md) for the full API reference.
