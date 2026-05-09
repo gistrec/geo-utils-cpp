@@ -62,17 +62,18 @@ geofence-style usage.
 
 Throughput in million items per second (higher is better). All numbers from
 the host described above. Run `./build-bench/benchmarks/bench_*` locally
-to reproduce.
+to reproduce. **Bold** number = column winner, or co-winners within ~5%
+(noise-level tie); bold library name = this library (`geo-utils-cpp`).
 
 ### `distance_between`
 
-| Library                | N=1 000 | N=100 000 |
-| ---------------------- | ------: | --------: |
-| **geo-utils-cpp**      |    39.5 |      25.7 |
-| naive haversine        |    37.4 |      25.7 |
-| S2 Geometry            |    15.1 |      10.6 |
-| Boost.Geometry         |    38.4 |      27.0 |
-| GeographicLib (WGS84)  |    1.22 |      1.22 |
+| Library                | N=1 000  | N=100 000 |
+| ---------------------- | -------: | --------: |
+| **geo-utils-cpp**      | **39.5** |  **25.7** |
+| naive haversine        | **37.4** |  **25.7** |
+| S2 Geometry            |     15.1 |      10.6 |
+| Boost.Geometry         | **38.4** |  **27.0** |
+| GeographicLib (WGS84)  |     1.22 |      1.22 |
 
 Tied with naive haversine and Boost.Geometry within noise. S2 is slower
 because each call converts lat/lng → 3D `S2Point`. GeographicLib is ~30×
@@ -80,11 +81,11 @@ slower (and substantially more accurate on long-distance pairs).
 
 ### `heading`
 
-| Library                | N=1 000 | N=100 000 |
-| ---------------------- | ------: | --------: |
-| **geo-utils-cpp**      |    25.8 |      15.1 |
-| Boost.Geometry         |    26.3 |      14.3 |
-| GeographicLib          |    1.15 |      1.14 |
+| Library                | N=1 000  | N=100 000 |
+| ---------------------- | -------: | --------: |
+| **geo-utils-cpp**      | **25.8** |  **15.1** |
+| Boost.Geometry         | **26.3** |  **14.3** |
+| GeographicLib          |     1.15 |      1.14 |
 | S2 Geometry            | _no public bearing API_ |   |
 
 ### `contains` (point-in-polygon)
@@ -93,8 +94,8 @@ Million queries per second (1 000 query points per iteration).
 
 | Library              | poly N=10 | poly N=100 | poly N=1 000 |
 | -------------------- | --------: | ---------: | -----------: |
-| **geo-utils-cpp**    |     15.9  |       2.82 |        0.321 |
-| S2 Geometry          |     12.9  |      11.3  |       11.9   |
+| **geo-utils-cpp**    |  **15.9** |       2.82 |        0.321 |
+| S2 Geometry          |     12.9  |   **11.3** |     **11.9** |
 | Boost.Geometry       |      1.85 |       0.23 |        0.024 |
 | GeographicLib        | _no native PIP_ |     |              |
 
@@ -116,12 +117,12 @@ install.
 
 ### `area` (M polygons/s × vertex count)
 
-| Library              | N=10 | N=100 | N=1 000 |
-| -------------------- | ---: | ----: | ------: |
-| **geo-utils-cpp**    | 69.5 |  66.6 |    65.5 |
-| S2 Geometry          | 15.6 |  13.7 |    13.4 |
-| Boost.Geometry       | 43.8 |  35.3 |    36.1 |
-| GeographicLib        | 1.71 |  1.99 |    2.04 |
+| Library              |     N=10 |    N=100 | N=1 000  |
+| -------------------- | -------: | -------: | -------: |
+| **geo-utils-cpp**    | **69.5** | **66.6** | **65.5** |
+| S2 Geometry          |     15.6 |     13.7 |     13.4 |
+| Boost.Geometry       |     43.8 |     35.3 |     36.1 |
+| GeographicLib        |     1.71 |     1.99 |     2.04 |
 
 We win clearly on `area` — our spherical-triangle accumulation is a
 straight-line loop with no allocation; S2's `S2Loop::GetArea` does more work
@@ -129,12 +130,12 @@ per vertex, and Boost.Geometry's strategy machinery costs ~1.8×.
 
 ### `path_length` (M points/s)
 
-| Library              | N=10 | N=100 | N=1 000 |
-| -------------------- | ---: | ----: | ------: |
-| **geo-utils-cpp**    | 51.3 |  44.9 |    41.3 |
-| S2 Geometry          | 39.3 |  45.7 |    36.6 |
-| Boost.Geometry       | 43.8 |  39.2 |    38.8 |
-| GeographicLib        | 1.50 |  1.25 |    1.20 |
+| Library              |     N=10 |    N=100 | N=1 000  |
+| -------------------- | -------: | -------: | -------: |
+| **geo-utils-cpp**    | **51.3** | **44.9** | **41.3** |
+| S2 Geometry          |     39.3 | **45.7** |     36.6 |
+| Boost.Geometry       |     43.8 |     39.2 |     38.8 |
+| GeographicLib        |     1.50 |     1.25 |     1.20 |
 
 Comfortably ahead of S2 at N=10 (~30 %) and N=1 000 (~13 %); tied at
 N=100 within noise. Ahead of Boost.Geometry at every size. GeographicLib
@@ -148,10 +149,10 @@ plus the on-disk install size of each library. Smaller is better.
 | Library              | Stripped binary | Library install | Notes                              |
 | -------------------- | --------------: | --------------: | ---------------------------------- |
 | **geo-utils-cpp**    |       **33 KB** |       **32 KB** | header-only, zero deps             |
-| naive haversine      |           33 KB |               0 | hand-written, no library           |
-| S2 Geometry          |         33.4 KB |       32.8 MB   | S2 7.1 MB + abseil 14 MB (+ rest)  |
+| naive haversine      |       **33 KB** |               0 | hand-written, no library           |
+| S2 Geometry          |     **33.4 KB** |       32.8 MB   | S2 7.1 MB + abseil 14 MB (+ rest)  |
 | Boost.Geometry       |         50.8 KB |       12.3 MB   | only the `geometry` subset of Boost |
-| GeographicLib        |           33 KB |        4.6 MB   | distance only — no PIP             |
+| GeographicLib        |       **33 KB** |        4.6 MB   | distance only — no PIP             |
 
 The "Library install" column is *what you have to ship or have on disk* to
 use the library. For `geo-utils-cpp` that's the whole `include/` directory
