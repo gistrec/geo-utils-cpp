@@ -144,21 +144,22 @@ int main() {
 `geo-utils-cpp` is a near-zero-overhead wrapper over the math itself, with a
 tiny disk footprint thanks to header-only + zero dependencies.
 
-| Library              | `distance_between` (M pairs/s) | `contains` (poly N=10, M qps) | Install size  |
-| -------------------- | -----------------------------: | ----------------------------: | ------------: |
-| **geo-utils-cpp**    |                       **39.5** |                      **15.9** |     **36 KB** |
-| naive haversine      |                           37.4 |                            —  |             0 |
-| S2 Geometry          |                           15.1 |                          12.9 |       32.8 MB |
-| Boost.Geometry       |                           38.4 |                           1.85|       12.3 MB |
-| GeographicLib        |                            1.2 |                 no native PIP |        4.6 MB |
+| Library              | `distance_between` (M pairs/s) | `area` (poly N=100, M polys/s) | Install size  |
+| -------------------- | -----------------------------: | -----------------------------: | ------------: |
+| **geo-utils-cpp**    |                       **40.5** |                       **67.2** |     **36 KB** |
+| naive haversine      |                           38.3 |                             —  |             0 |
+| S2 Geometry          |                           82.9 |                           14.0 |       32.8 MB |
+| Boost.Geometry       |                           39.8 |                           36.2 |       12.3 MB |
+| GeographicLib        |                            1.2 |                            2.0 |        4.6 MB |
 
-Apple M1 · clang 17 · `-O2 -DNDEBUG`. Tied with Boost.Geometry on
-per-pair ops (`distance`, `heading`) within noise; ahead on polygon ops
-(`area`, `path_length`, `contains` for tiny polygons). Faster than S2 on
-`distance`, `heading`, `area`, `path_length`, and on `contains` against
-~10-vertex polygons. **S2 wins `contains` from ~100 vertices onward** via
-its bounding-rectangle prefilter. **130–900× smaller install footprint**
-than the alternatives. Zero overhead over hand-written haversine.
+Apple M1 · clang 17 · `-O2 -DNDEBUG`. Native types pre-built outside the
+timed loop — numbers reflect algorithmic cost only. Ties Boost.Geometry's
+spherical strategy on `distance` / `heading` / `path_length` within noise;
+**wins clearly on `area`** (allocation-free triangle-fan accumulator). S2
+is faster algorithmically on `distance` / `path_length` / `contains` — but
+pays a per-call `lat/lng → S2Point` conversion in real-world lat/lng
+workloads (not counted here). **130–900× smaller install footprint** than
+the alternatives. Zero overhead over hand-written haversine.
 
 See [docs/benchmarks.md](docs/benchmarks.md) for the full methodology, all
 operations, and a discussion of when to reach for each library.

@@ -8,22 +8,26 @@ For build and run instructions see [`benchmarks/README.md`](../benchmarks/README
 
 ## TL;DR
 
-- **Speed.** Ties Boost.Geometry's spherical strategy on `distance` /
-  `heading` (within noise) and wins clearly on `area`, `path_length`, and
-  `contains`. Wins vs S2 on `distance`, `heading`, `area`, `path_length`,
-  and on `contains` against tiny polygons (~10 vertices). ~10–30× faster
-  than GeographicLib's WGS84 geodesic — but **less accurate**, on a
-  sphere. Matches hand-written haversine within noise: zero header-only
-  overhead.
+- **Speed.** On the algorithm itself (native types pre-built): ties
+  Boost.Geometry's spherical strategy on `distance` / `heading` /
+  `path_length` (within noise), wins clearly on `area`, and matches a
+  hand-written haversine on `distance`. S2 Geometry's 3D-cartesian model
+  is **faster** than us on `distance`, `path_length`, and `contains` — but
+  it pays a per-call `lat/lng → S2Point` conversion in real-world
+  lat/lng-input workloads (not counted in these algorithm-only numbers).
+  ~20–30× faster than GeographicLib's WGS84 geodesic — but **less
+  accurate**, on a sphere.
 - **Disk footprint.** **36 KB** of headers vs **32.8 MB** for S2 (with
   abseil), **12.3 MB** for Boost.Geometry's `geometry` subset alone,
   **4.6 MB** for GeographicLib — a ~130–900× difference in what you have
   to ship or have on disk.
-- **Where competitors win.** As soon as `contains` polygons reach ~100
-  vertices, S2's bounding-rectangle prefilter plus a tightly inlined
-  edge-crossing routine take over: S2 is ~4× faster than us at N=100 and
-  ~37× faster at N=1 000. For `contains` against geofences of ~100+
-  vertices queried at high volume, S2 is the right tool.
+- **Where competitors win.** S2 wins on `contains` (its 3D edge-crossing
+  plus a bounding-rectangle prefilter make throughput roughly constant in
+  vertex count) and on `distance` / `path_length` once you exclude
+  conversion. If those are your hot path *and* you can ship a 33 MB
+  dependency, S2 is the right tool. **Where we win.** `area` (allocation-
+  free triangle-fan accumulator), and any workload where shipping a
+  multi-MB dependency is a non-starter.
 
 ## Methodology
 
@@ -38,10 +42,12 @@ For build and run instructions see [`benchmarks/README.md`](../benchmarks/README
 
 Each library is fed identical inputs (see
 [`benchmarks/common/random_data.hpp`](../benchmarks/common/random_data.hpp)).
-Conversion to a library's native point type is **counted in the timed
-loop** when the input is naturally lat/lng (distance, heading). For polygon
-operations the polygon is converted once outside the loop, matching real
-geofence-style usage.
+Each library's **native point/geometry types are pre-built outside the timed
+loop**. The timed work is the per-call computation (`bg::distance`,
+`S2Loop::Contains`, `pa.Compute()`, etc.) — this isolates algorithmic cost
+from `lat/lng → native-type` plumbing. `geo-utils-cpp`'s API takes lat/lng
+directly, so it has nothing to pre-build; this is a real API-shape advantage
+but is not what the speed numbers below measure.
 
 ### Apples-to-apples notes
 
@@ -69,23 +75,28 @@ to reproduce. **Bold** number = column winner, or co-winners within ~5%
 
 | Library                | N=1 000  | N=100 000 |
 | ---------------------- | -------: | --------: |
-| **geo-utils-cpp**      | **39.5** |  **25.7** |
-| naive haversine        | **37.4** |  **25.7** |
-| S2 Geometry            |     15.1 |      10.6 |
-| Boost.Geometry         | **38.4** |  **27.0** |
-| GeographicLib (WGS84)  |     1.22 |      1.22 |
+| **geo-utils-cpp**      |     40.5 |  **28.2** |
+| naive haversine        |     38.3 |      26.0 |
+| S2 Geometry            | **82.9** |  **29.1** |
+| Boost.Geometry         |     39.8 |  **28.8** |
+| GeographicLib (WGS84)  |     1.25 |      1.24 |
 
-Tied with naive haversine and Boost.Geometry within noise. S2 is slower
-because each call converts lat/lng → 3D `S2Point`. GeographicLib is ~30×
-slower (and substantially more accurate on long-distance pairs).
+We tie naive haversine and Boost.Geometry's spherical strategy within
+noise — zero overhead from being a library. S2 is **2× faster at small N**
+because once the input is `S2Point` the per-pair distance reduces to a dot
+product / `acos`, cheaper than haversine; the gap closes at N=100 000 where
+all three become memory-bandwidth bound. Note: in real-world workloads
+where the input *is* lat/lng, S2 also pays a per-call lat/lng→S2Point
+conversion that isn't counted here. GeographicLib is ~25× slower (and
+substantially more accurate on long-distance pairs).
 
 ### `heading`
 
 | Library                | N=1 000  | N=100 000 |
 | ---------------------- | -------: | --------: |
-| **geo-utils-cpp**      | **25.8** |  **15.1** |
-| Boost.Geometry         | **26.3** |  **14.3** |
-| GeographicLib          |     1.15 |      1.14 |
+| **geo-utils-cpp**      | **24.9** |  **15.5** |
+| Boost.Geometry         |     22.5 |  **14.7** |
+| GeographicLib          |     1.16 |      1.16 |
 | S2 Geometry            | _no public bearing API_ |   |
 
 ### `contains` (point-in-polygon)
@@ -94,52 +105,53 @@ Million queries per second (1 000 query points per iteration).
 
 | Library              | poly N=10 | poly N=100 | poly N=1 000 |
 | -------------------- | --------: | ---------: | -----------: |
-| **geo-utils-cpp**    |  **15.9** |       2.82 |        0.321 |
-| S2 Geometry          |     12.9  |   **11.3** |     **11.9** |
-| Boost.Geometry       |      1.85 |       0.23 |        0.024 |
+| **geo-utils-cpp**    |      16.2 |       2.87 |        0.329 |
+| S2 Geometry          |  **26.7** |   **18.0** |     **21.2** |
+| Boost.Geometry       |      1.91 |       0.234 |       0.024 |
 | GeographicLib        | _no native PIP_ |     |              |
 
-This is where the libraries differ most. **S2's `S2Loop::Contains` exits
-early via a bounding-rectangle prefilter** for queries clearly outside the
-loop, and uses a tightly inlined edge-crossing routine for the rest — so its
-throughput is roughly *constant* in vertex count over our test range. Our
-implementation is a textbook O(N) ray cast through edges (rhumb-line by
-default), so we beat S2 only on tiny polygons (~10 vertices). From ~100
-vertices onward S2's prefilter dominates: ~4× faster than us at N=100,
-~37× faster at N=1 000. Boost.Geometry's spherical `within` traces
-*great-circle* edges — a heavier per-edge predicate that explains its
-much lower throughput throughout.
+`contains` is where the libraries differ most. **S2's `S2Loop::Contains`
+exits early via a bounding-rectangle prefilter** and uses a tightly
+inlined 3D edge-crossing routine — so its algorithmic throughput is
+roughly *constant* in vertex count. Our implementation is a textbook O(N)
+ray cast through edges (rhumb-line by default), so we lose to S2 even at
+N=10 once the per-query lat/lng→S2Point conversion is excluded. With
+real-world lat/lng inputs (where S2 *would* pay that conversion per
+query), the gap closes for tiny polygons. Boost.Geometry's spherical
+`within` traces *great-circle* edges — a heavier per-edge predicate that
+explains its much lower throughput throughout.
 
-If your workload involves polygons of ~100+ vertices queried at any volume,
-S2 wins `contains`. If it's "tiny polygons, or you can't ship a 33 MB
-dependency", we beat both S2 and Boost.Geometry, with a ~900× smaller
-install.
+If your workload involves `contains` queries at any volume and you can
+ship a 33 MB dependency, S2 wins. If you can't ship that — we still beat
+Boost.Geometry by ~10× and ship at ~1/900 the size.
 
 ### `area` (M polygons/s × vertex count)
 
 | Library              |     N=10 |    N=100 | N=1 000  |
 | -------------------- | -------: | -------: | -------: |
-| **geo-utils-cpp**    | **69.5** | **66.6** | **65.5** |
-| S2 Geometry          |     15.6 |     13.7 |     13.4 |
-| Boost.Geometry       |     43.8 |     35.3 |     36.1 |
-| GeographicLib        |     1.71 |     1.99 |     2.04 |
+| **geo-utils-cpp**    | **69.9** | **67.2** | **67.7** |
+| S2 Geometry          |     16.3 |     14.0 |     13.9 |
+| Boost.Geometry       |     45.0 |     36.2 |     36.6 |
+| GeographicLib        |     1.75 |     2.04 |     2.07 |
 
 We win clearly on `area` — our spherical-triangle accumulation is a
-straight-line loop with no allocation; S2's `S2Loop::GetArea` does more work
-per vertex, and Boost.Geometry's strategy machinery costs ~1.8×.
+straight-line loop with no allocation; S2's `S2Loop::GetArea` does more
+work per vertex, and Boost.Geometry's strategy machinery costs ~1.8×.
 
 ### `path_length` (M points/s)
 
 | Library              |     N=10 |    N=100 | N=1 000  |
 | -------------------- | -------: | -------: | -------: |
-| **geo-utils-cpp**    | **51.3** | **44.9** | **41.3** |
-| S2 Geometry          |     39.3 | **45.7** |     36.6 |
-| Boost.Geometry       |     43.8 |     39.2 |     38.8 |
-| GeographicLib        |     1.50 |     1.25 |     1.20 |
+| **geo-utils-cpp**    |     54.0 |     46.2 |     41.7 |
+| S2 Geometry          | **105.1** | **96.7** | **91.6** |
+| Boost.Geometry       |     48.7 | **43.5** | **40.2** |
+| GeographicLib        |     1.53 |     1.27 |     1.23 |
 
-Comfortably ahead of S2 at N=10 (~30 %) and N=1 000 (~13 %); tied at
-N=100 within noise. Ahead of Boost.Geometry at every size. GeographicLib
-pays the ellipsoidal cost.
+S2 wins on `path_length` algorithmically (~2×) — once the input is
+`S2Point`, segment length is a fast cartesian computation. We tie
+Boost.Geometry within noise. GeographicLib pays the ellipsoidal cost.
+Note: a lat/lng-input workload would push the S2 column down by the
+per-call conversion cost, which is not counted here.
 
 ## Disk footprint
 
@@ -165,15 +177,17 @@ the full Boost install is ~362 MB.
 
 ## Where each library is the right tool
 
-- **geo-utils-cpp** — tiny polygons, lat/lng inputs, no-deps constraint,
-  container/mobile bundle size matters. Sphere accuracy is acceptable.
-- **S2 Geometry** — many `contains` queries against polygons of ~100+
-  vertices, bounding-rectangle prefilter / spatial indexing (`S2ShapeIndex`)
-  matter, and you can afford a ~33 MB install. Different data model
-  (3D unit vectors).
+- **geo-utils-cpp** — lat/lng-native API, no-deps constraint,
+  container/mobile bundle size matters, `area` is hot, sphere accuracy is
+  acceptable. Best when you'd otherwise be paying conversion cost per call.
+- **S2 Geometry** — `contains` / `distance` / `path_length` are the hot
+  path, you can afford a ~33 MB install, and you're willing to keep data
+  as `S2Point` end-to-end (otherwise the lat/lng→S2Point conversion eats
+  the algorithmic win). Spatial indexing (`S2ShapeIndex`) available for
+  bigger workloads.
 - **Boost.Geometry** — already-Boost project, want one library for many
-  geometry types and CSes. Slower at PIP than both us and S2; pulls in the
-  whole `geometry` subset.
+  geometry types and CSes. Ties us on most operations; loses on `area`
+  and on `contains`.
 - **GeographicLib** — sub-meter geodesic accuracy on the WGS84 ellipsoid.
   Slower by 1–2 orders of magnitude. No PIP.
 

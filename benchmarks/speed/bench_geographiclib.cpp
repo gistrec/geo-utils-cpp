@@ -6,6 +6,15 @@
 // slower. The numbers here intentionally show that gap; this is a
 // *trade-off* benchmark, not a "we are faster" benchmark.
 //
+// Conversion policy: distance/heading work directly on lat/lng (no
+// conversion at all). For area / path_length we DO build PolygonArea +
+// AddPoint inside the timed loop — unlike Boost.Geometry / S2, where the
+// "build native type" step is separable from "run algorithm", PolygonArea
+// is an incremental accumulator: AddPoint *is* the geodesic work, and
+// Compute() only adds the closing-edge contribution and returns the
+// already-accumulated value. Pre-building outside the loop would measure
+// nothing real (a cached double read).
+//
 // GeographicLib does not ship a native point-in-polygon predicate, so the
 // `contains` benchmark is omitted (this is itself information for the reader).
 
@@ -63,6 +72,12 @@ static void BM_GeographicLib_Heading(benchmark::State& state) {
 BENCHMARK(BM_GeographicLib_Heading)->Arg(1000)->Arg(100000);
 
 // --- area (PolygonArea, polyline=false) -----------------------------------
+//
+// AddPoint is where the per-vertex geodesic work happens (an Inverse() call
+// per vertex); Compute() is essentially free. We measure the full pattern
+// "build + finalize" because that is what computing the area of an N-vertex
+// polygon actually costs in GeographicLib — there is no separate algorithm
+// step to time on its own.
 
 static void BM_GeographicLib_Area(benchmark::State& state) {
     const auto poly = geo::bench::regular_polygon(

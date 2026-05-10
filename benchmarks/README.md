@@ -96,10 +96,12 @@ or flags via `CXX=` and `CXXFLAGS=`.
 
 - **Same inputs everywhere.** All benchmarks pull data from
   `common/random_data.hpp`, which is seeded deterministically.
-- **Conversion costs are included** for libraries that don't accept lat/lng
-  natively (S2 takes `S2Point`; Boost takes its own point type). Pre-converting
-  outside the timing loop would understate the cost of "I have lat/lng, I want
-  a distance" — the actual usage pattern.
+- **Native types are pre-built outside the timing loop** for every library.
+  The timed work is the library's per-call computation, isolated from
+  `lat/lng → native-type` plumbing — so the numbers compare algorithmic cost,
+  not data-shape conversion overhead. (`geo-utils-cpp` accepts lat/lng
+  directly, so it has nothing to pre-build; that is a separate API-shape
+  advantage and not part of these speed numbers.)
 - **Polygons are pre-built** outside the timing loop because in real code a
   geofence is a one-time setup cost.
 - **Don't compare GeographicLib's distance/heading head-to-head as "speed".**

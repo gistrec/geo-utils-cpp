@@ -4,9 +4,10 @@
 // Boost.Geometry equivalents using `cs::spherical_equatorial<degree>` —
 // the same sphere-based model we use, so this is a fair head-to-head.
 //
-// Conversion policy (matches bench_s2.cpp):
-//   * Streams of points: converted INSIDE the timed loop.
-//   * Long-lived polygon: pre-converted ONCE outside the loop.
+// Conversion policy (matches bench_s2.cpp): every native point/geometry is
+// pre-built OUTSIDE the timed loop. The timed work is the library's per-call
+// computation, isolated from data-shape conversion overhead — so the numbers
+// reflect algorithmic cost, not "lat/lng-in / lat/lng-out" plumbing.
 //
 // Coordinate convention reminder: Boost.Geometry expects (lng, lat) order
 // for spherical_equatorial points.
@@ -68,13 +69,14 @@ inline LineString to_boost_linestring(const std::vector<geo::LatLng>& pts) {
 // --- distance --------------------------------------------------------------
 
 static void BM_Boost_DistanceBetween(benchmark::State& state) {
-    const auto pts = geo::bench::random_points(2 * static_cast<std::size_t>(state.range(0)));
+    const auto pts_ll = geo::bench::random_points(2 * static_cast<std::size_t>(state.range(0)));
+    std::vector<Point> pts;
+    pts.reserve(pts_ll.size());
+    for (const auto& p : pts_ll) pts.push_back(to_boost_point(p));
     bg::strategy::distance::haversine<double> haversine(kEarthRadius);
     for (auto _ : state) {
         for (std::size_t i = 0; i + 1 < pts.size(); i += 2) {
-            const Point a = to_boost_point(pts[i]);
-            const Point b = to_boost_point(pts[i + 1]);
-            benchmark::DoNotOptimize(bg::distance(a, b, haversine));
+            benchmark::DoNotOptimize(bg::distance(pts[i], pts[i + 1], haversine));
         }
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
@@ -84,19 +86,20 @@ BENCHMARK(BM_Boost_DistanceBetween)->Arg(1000)->Arg(100000);
 // --- heading (azimuth) -----------------------------------------------------
 
 static void BM_Boost_Heading(benchmark::State& state) {
-    const auto pts = geo::bench::random_points(2 * static_cast<std::size_t>(state.range(0)));
+    const auto pts_ll = geo::bench::random_points(2 * static_cast<std::size_t>(state.range(0)));
+    std::vector<Point> pts;
+    pts.reserve(pts_ll.size());
+    for (const auto& p : pts_ll) pts.push_back(to_boost_point(p));
     for (auto _ : state) {
         for (std::size_t i = 0; i + 1 < pts.size(); i += 2) {
-            const Point a = to_boost_point(pts[i]);
-            const Point b = to_boost_point(pts[i + 1]);
-            benchmark::DoNotOptimize(bg::azimuth(a, b));
+            benchmark::DoNotOptimize(bg::azimuth(pts[i], pts[i + 1]));
         }
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
 BENCHMARK(BM_Boost_Heading)->Arg(1000)->Arg(100000);
 
-// --- contains: polygon converted once; queries converted inside the loop --
+// --- contains: polygon and query points pre-converted outside the loop ----
 
 static void BM_Boost_Contains(benchmark::State& state) {
     const auto poly_ll = geo::bench::regular_polygon(
@@ -104,13 +107,16 @@ static void BM_Boost_Contains(benchmark::State& state) {
     const Polygon poly = to_boost_polygon(poly_ll);
 
     const auto queries_ll = geo::bench::queries_around(40.0, -74.0, 5.0, 1000);
+    std::vector<Point> queries;
+    queries.reserve(queries_ll.size());
+    for (const auto& q : queries_ll) queries.push_back(to_boost_point(q));
 
     for (auto _ : state) {
-        for (const auto& q : queries_ll) {
-            benchmark::DoNotOptimize(bg::within(to_boost_point(q), poly));
+        for (const auto& q : queries) {
+            benchmark::DoNotOptimize(bg::within(q, poly));
         }
     }
-    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries_ll.size()));
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
 }
 BENCHMARK(BM_Boost_Contains)->Arg(10)->Arg(100)->Arg(1000);
 
@@ -130,13 +136,13 @@ static void BM_Boost_Area(benchmark::State& state) {
 }
 BENCHMARK(BM_Boost_Area)->Arg(10)->Arg(100)->Arg(1000);
 
-// --- path_length: input is lat/lng; convert + sum inside the timed loop ---
+// --- path_length: LineString pre-built outside the timed loop ------------
 
 static void BM_Boost_PathLength(benchmark::State& state) {
     const auto path_ll = geo::bench::random_points(static_cast<std::size_t>(state.range(0)));
+    const LineString ls = to_boost_linestring(path_ll);
     bg::strategy::distance::haversine<double> haversine(kEarthRadius);
     for (auto _ : state) {
-        LineString ls = to_boost_linestring(path_ll);
         benchmark::DoNotOptimize(bg::length(ls, haversine));
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
