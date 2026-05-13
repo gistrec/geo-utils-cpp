@@ -1,0 +1,5 @@
+project = libgeo-utils
+
+using config
+using dist
+using install

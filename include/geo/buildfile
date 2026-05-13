@@ -1,0 +1,11 @@
+lib{geo-utils}: hxx{**}
+
+# Public include path: consumers do `#include <geo/...>`.
+lib{geo-utils}: cxx.export.poptions = "-I$out_root/include" "-I$src_root/include"
+
+# Install headers under <prefix>/include/geo/, preserving the detail/ subdir.
+hxx{*}:
+{
+  install         = include/geo/
+  install.subdirs = true
+}

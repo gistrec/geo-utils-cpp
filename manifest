@@ -1,0 +1,15 @@
+: 1
+name: libgeo-utils
+version: 1.0.1
+project: geo-utils-cpp
+language: c++
+summary: Header-only C++17 geographic geometry utilities
+license: Apache-2.0
+topics: geography, geometry, spherical, distance, header-only
+description-file: README.md
+description-type: text/markdown
+changes-file: CHANGELOG.md
+changes-type: text/markdown
+url: https://github.com/gistrec/geo-utils-cpp
+email: gistrec@gmail.com
+requires: c++17

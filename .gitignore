@@ -1,4 +1,8 @@
-build/
+# Ignore CMake/build2 out-of-tree build artifacts under build/, but keep
+# the tracked build2 metadata files (build/bootstrap.build, build/root.build).
+build/*
+!build/bootstrap.build
+!build/root.build
 build-*/
 
 # Compiled Object files
