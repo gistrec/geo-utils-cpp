@@ -8,8 +8,9 @@ else()
 endif()
 
 include(CMakeDependentOption)
-option(GEO_UTILS_CPP_BUILD_TESTS    "Build geo-utils-cpp tests"    ${_geo_utils_cpp_is_top_level})
-option(GEO_UTILS_CPP_BUILD_EXAMPLES "Build geo-utils-cpp examples" ${_geo_utils_cpp_is_top_level})
+option(GEO_UTILS_CPP_BUILD_TESTS      "Build geo-utils-cpp tests"      ${_geo_utils_cpp_is_top_level})
+option(GEO_UTILS_CPP_BUILD_EXAMPLES   "Build geo-utils-cpp examples"   ${_geo_utils_cpp_is_top_level})
+option(GEO_UTILS_CPP_BUILD_BENCHMARKS "Build geo-utils-cpp benchmarks" OFF)
 cmake_dependent_option(GEO_UTILS_CPP_ENABLE_COVERAGE
     "Enable gcov coverage instrumentation (GCC/Clang only)" OFF
     "GEO_UTILS_CPP_BUILD_TESTS" OFF)
@@ -96,6 +97,11 @@ endif()
 # Examples
 if(GEO_UTILS_CPP_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+# Benchmarks (opt-in: pulls Google Benchmark and optionally S2/Boost/GeographicLib)
+if(GEO_UTILS_CPP_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()
 
 # Installation

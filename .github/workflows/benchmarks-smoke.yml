@@ -1,0 +1,44 @@
+# Smoke-build the dependency-free portion of the benchmarks. Triggered only
+# on PRs/pushes that actually touch benchmark sources, the root CMake, or
+# this workflow file — so doc-only PRs don't pay the CI cost. The benchmarks
+# themselves aren't run here (that would require S2 / Boost / GeographicLib
+# installs), only `bench_geo_utils` and `bench_naive` which have no external
+# deps. The intent is to catch silent breakage in `benchmarks/CMakeLists.txt`
+# or the shared `random_data.hpp` / `constants.hpp` headers.
+
+name: Benchmarks smoke-build
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'benchmarks/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/benchmarks-smoke.yml'
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'benchmarks/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/benchmarks-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: smoke-build (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build-bench -DGEO_UTILS_CPP_BUILD_BENCHMARKS=ON -DGEO_UTILS_CPP_BUILD_TESTS=OFF -DGEO_UTILS_CPP_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build (dependency-free benches only)
+        run: cmake --build build-bench --config Release --target bench_geo_utils bench_naive
