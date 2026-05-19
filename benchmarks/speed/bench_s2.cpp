@@ -57,17 +57,16 @@ static void BM_S2_DistanceBetween(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_S2_DistanceBetween)->Arg(1000)->Arg(100000);
+BENCHMARK(BM_S2_DistanceBetween)->Arg(1000)->Arg(100000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- contains: polygon and query points pre-converted outside the loop ---
 
 static void BM_S2_Contains(benchmark::State& state) {
-    const auto poly_ll = geo::bench::regular_polygon(
-        static_cast<std::size_t>(state.range(0)), 40.0, -74.0, 5.0);
+    const auto poly_ll = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
     auto loop = std::make_unique<S2Loop>(to_s2_points(poly_ll));
     loop->Normalize();  // S2Loop expects CCW; Normalize flips if needed.
 
-    const auto queries_ll = geo::bench::queries_around(40.0, -74.0, 5.0, 1000);
+    const auto queries_ll = geo::bench::bench_queries();
     const auto queries = to_s2_points(queries_ll);
 
     for (auto _ : state) {
@@ -77,13 +76,12 @@ static void BM_S2_Contains(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
 }
-BENCHMARK(BM_S2_Contains)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_S2_Contains)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- area ------------------------------------------------------------------
 
 static void BM_S2_Area(benchmark::State& state) {
-    const auto poly_ll = geo::bench::regular_polygon(
-        static_cast<std::size_t>(state.range(0)), 40.0, -74.0, 5.0);
+    const auto poly_ll = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
     auto loop = std::make_unique<S2Loop>(to_s2_points(poly_ll));
     loop->Normalize();
 
@@ -93,7 +91,7 @@ static void BM_S2_Area(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_S2_Area)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_S2_Area)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- path_length: S2Polyline pre-built outside the timed loop ------------
 
@@ -105,4 +103,4 @@ static void BM_S2_PathLength(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_S2_PathLength)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_S2_PathLength)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);

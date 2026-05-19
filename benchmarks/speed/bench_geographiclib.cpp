@@ -50,7 +50,7 @@ static void BM_GeographicLib_DistanceBetween(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_GeographicLib_DistanceBetween)->Arg(1000)->Arg(100000);
+BENCHMARK(BM_GeographicLib_DistanceBetween)->Arg(1000)->Arg(100000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- heading ---------------------------------------------------------------
 
@@ -69,7 +69,7 @@ static void BM_GeographicLib_Heading(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_GeographicLib_Heading)->Arg(1000)->Arg(100000);
+BENCHMARK(BM_GeographicLib_Heading)->Arg(1000)->Arg(100000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- area (PolygonArea, polyline=false) -----------------------------------
 //
@@ -80,8 +80,7 @@ BENCHMARK(BM_GeographicLib_Heading)->Arg(1000)->Arg(100000);
 // step to time on its own.
 
 static void BM_GeographicLib_Area(benchmark::State& state) {
-    const auto poly = geo::bench::regular_polygon(
-        static_cast<std::size_t>(state.range(0)), 40.0, -74.0, 5.0);
+    const auto poly = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
     for (auto _ : state) {
         GeographicLib::PolygonArea pa(wgs84(), /*polyline=*/false);
         for (const auto& p : poly) pa.AddPoint(p.lat, p.lng);
@@ -92,7 +91,7 @@ static void BM_GeographicLib_Area(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_GeographicLib_Area)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_GeographicLib_Area)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- path_length (PolygonArea with polyline=true) -------------------------
 
@@ -108,7 +107,7 @@ static void BM_GeographicLib_PathLength(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_GeographicLib_PathLength)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_GeographicLib_PathLength)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // Note: contains() benchmark intentionally omitted — GeographicLib does not
 // provide a native point-in-polygon predicate. This is a real capability gap,

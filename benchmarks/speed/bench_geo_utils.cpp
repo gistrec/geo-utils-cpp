@@ -22,7 +22,7 @@ static void BM_GeoUtils_DistanceBetween(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_GeoUtils_DistanceBetween)->Arg(1000)->Arg(100000);
+BENCHMARK(BM_GeoUtils_DistanceBetween)->Arg(1000)->Arg(100000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- heading ----------------------------------------------------------------
 
@@ -35,14 +35,13 @@ static void BM_GeoUtils_Heading(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_GeoUtils_Heading)->Arg(1000)->Arg(100000);
+BENCHMARK(BM_GeoUtils_Heading)->Arg(1000)->Arg(100000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- contains (point-in-polygon) -------------------------------------------
 
 static void BM_GeoUtils_Contains(benchmark::State& state) {
-    const auto poly = geo::bench::regular_polygon(
-        static_cast<std::size_t>(state.range(0)), 40.0, -74.0, 5.0);
-    const auto queries = geo::bench::queries_around(40.0, -74.0, 5.0, 1000);
+    const auto poly = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
+    const auto queries = geo::bench::bench_queries();
     for (auto _ : state) {
         for (const auto& q : queries) {
             benchmark::DoNotOptimize(geo::contains(q, poly));
@@ -50,19 +49,18 @@ static void BM_GeoUtils_Contains(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
 }
-BENCHMARK(BM_GeoUtils_Contains)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_GeoUtils_Contains)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- area -------------------------------------------------------------------
 
 static void BM_GeoUtils_Area(benchmark::State& state) {
-    const auto poly = geo::bench::regular_polygon(
-        static_cast<std::size_t>(state.range(0)), 40.0, -74.0, 5.0);
+    const auto poly = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
     for (auto _ : state) {
         benchmark::DoNotOptimize(geo::area(poly));
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_GeoUtils_Area)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_GeoUtils_Area)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- path_length ------------------------------------------------------------
 
@@ -73,4 +71,4 @@ static void BM_GeoUtils_PathLength(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_GeoUtils_PathLength)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_GeoUtils_PathLength)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);

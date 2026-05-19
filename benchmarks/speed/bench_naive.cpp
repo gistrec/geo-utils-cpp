@@ -14,8 +14,8 @@
 
 namespace {
 
-constexpr double kEarthRadius = 6371009.0;
-constexpr double kPi = 3.14159265358979323846;
+constexpr double kEarthRadius = geo::bench::kEarthRadiusMeters;
+constexpr double kPi = geo::bench::kPi;
 
 inline double naive_distance(geo::LatLng a, geo::LatLng b) noexcept {
     const double lat1 = a.lat * kPi / 180.0;
@@ -39,4 +39,4 @@ static void BM_Naive_DistanceBetween(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_Naive_DistanceBetween)->Arg(1000)->Arg(100000);
+BENCHMARK(BM_Naive_DistanceBetween)->Arg(1000)->Arg(100000)->Repetitions(5)->ReportAggregatesOnly(true);

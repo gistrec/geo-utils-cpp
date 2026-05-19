@@ -41,7 +41,7 @@ using Point     = bg::model::point<double, 2, bg::cs::spherical_equatorial<bg::d
 using Polygon   = bg::model::polygon<Point>;
 using LineString = bg::model::linestring<Point>;
 
-constexpr double kEarthRadius = 6371009.0;
+constexpr double kEarthRadius = geo::bench::kEarthRadiusMeters;
 
 inline Point to_boost_point(const geo::LatLng& p) {
     return Point(p.lng, p.lat);  // (lng, lat) order!
@@ -81,7 +81,7 @@ static void BM_Boost_DistanceBetween(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_Boost_DistanceBetween)->Arg(1000)->Arg(100000);
+BENCHMARK(BM_Boost_DistanceBetween)->Arg(1000)->Arg(100000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- heading (azimuth) -----------------------------------------------------
 
@@ -97,16 +97,15 @@ static void BM_Boost_Heading(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_Boost_Heading)->Arg(1000)->Arg(100000);
+BENCHMARK(BM_Boost_Heading)->Arg(1000)->Arg(100000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- contains: polygon and query points pre-converted outside the loop ----
 
 static void BM_Boost_Contains(benchmark::State& state) {
-    const auto poly_ll = geo::bench::regular_polygon(
-        static_cast<std::size_t>(state.range(0)), 40.0, -74.0, 5.0);
+    const auto poly_ll = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
     const Polygon poly = to_boost_polygon(poly_ll);
 
-    const auto queries_ll = geo::bench::queries_around(40.0, -74.0, 5.0, 1000);
+    const auto queries_ll = geo::bench::bench_queries();
     std::vector<Point> queries;
     queries.reserve(queries_ll.size());
     for (const auto& q : queries_ll) queries.push_back(to_boost_point(q));
@@ -118,13 +117,12 @@ static void BM_Boost_Contains(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
 }
-BENCHMARK(BM_Boost_Contains)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_Boost_Contains)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- area ------------------------------------------------------------------
 
 static void BM_Boost_Area(benchmark::State& state) {
-    const auto poly_ll = geo::bench::regular_polygon(
-        static_cast<std::size_t>(state.range(0)), 40.0, -74.0, 5.0);
+    const auto poly_ll = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
     const Polygon poly = to_boost_polygon(poly_ll);
     // bg::area on a spherical CS returns area on the unit sphere (steradians);
     // multiply by R² to get square meters.
@@ -134,7 +132,7 @@ static void BM_Boost_Area(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_Boost_Area)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_Boost_Area)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
 
 // --- path_length: LineString pre-built outside the timed loop ------------
 
@@ -147,4 +145,4 @@ static void BM_Boost_PathLength(benchmark::State& state) {
     }
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
-BENCHMARK(BM_Boost_PathLength)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_Boost_PathLength)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
