@@ -38,46 +38,27 @@
     </a>
 </p>
 
-A tiny header-only C++17 library for common latitude/longitude geometry:
-distance, heading, polygon area, point-in-polygon, and path proximity checks.
+Practical latitude/longitude geometry for C++17 projects that need GPS math,
+not a full geometry framework.
 
-Designed for projects that need practical GPS/lat-lng math without pulling in a
-large geometry framework. No dependencies, no build step, and an install
-footprint of about 36 KB.
+Distance, heading, polygon area, point-in-polygon, and path proximity checks —
+header-only, no dependencies, no build step.
 
-The API is inspired by Google Maps geometry utilities and uses a spherical Earth
-approximation, like Google Maps.
+The API is inspired by Google Maps geometry utilities and uses the same spherical
+Earth approximation model.
 
 ## Features
 
-- **Spherical calculations** — distance, heading, offset, interpolation, and area
-- **Polygon utilities** — point-in-polygon and path proximity checks
-- **Lat/lng-native API** — work directly with latitude/longitude coordinates
-- **Simple integration** — use through CMake, vcpkg, Conan, or by copying the
-  `include/` directory
-
-## Why use this library?
-
-- **Tiny install footprint** — about 36 KB of headers, compared with MB-scale
-  geometry libraries.
-- **Lat/lng-native API** — pass latitude/longitude coordinates directly, without
-  converting to framework-specific point types.
-- **Header-only and dependency-free** — easy to vendor or package; no compiled
-  library needs to be built or linked.
-- **Fast common operations** — matches hand-written haversine on distance, stays
-  competitive with larger libraries, and is especially strong on polygon area.
-- **Focused scope** — intentionally small API for common GPS, navigation,
-  tracking, backend, and GIS-related workflows.
-
-## When not to use
-
-- If you need high-precision ellipsoidal geodesics or sub-meter accuracy, use
-  GeographicLib.
-- If polygon containment is your main hot path, especially for larger polygons,
-  consider S2 Geometry.
-- If you need many geometry types, coordinate systems, or generic geometry
-  algorithms, Boost.Geometry may be a better fit.
-- If you need spatial indexing, use S2, CGAL, or another dedicated spatial index.
+- **Lat/lng-native API** — pass latitude/longitude coordinates directly, no
+  framework-specific point types to convert through.
+- **Header-only, dependency-free** — about 36 KB across 4 headers; nothing
+  to build or link.
+- **Spherical math** — distance, heading, offset, interpolation, area.
+- **Polygon utilities** — point-in-polygon and path proximity checks.
+- **Fast** — matches hand-written haversine on `distance`; especially strong
+  on polygon `area` (see [benchmarks](docs/benchmarks.md)).
+- **Focused scope** — intentionally small API for GPS, navigation, tracking,
+  backend, and GIS workflows.
 
 ## Installation
 
@@ -102,13 +83,6 @@ target_link_libraries(your_target PRIVATE geo::utils)
 vcpkg install geo-utils-cpp
 ```
 
-Then in your `CMakeLists.txt`:
-
-```cmake
-find_package(GeoUtilsCpp 1.0.1 REQUIRED)
-target_link_libraries(your_target PRIVATE geo::utils)
-```
-
 ### xrepo
 
 ```sh
@@ -126,36 +100,32 @@ target("your_target")
 
 ### Conan
 
-> Pending Conan Center merge:
-> [conan-io/conan-center-index#30152](https://github.com/conan-io/conan-center-index/pull/30152)
-
-Once the recipe is available in Conan Center:
-
 ```sh
 conan install --requires=geo-utils-cpp/1.0.1 --build=missing
 ```
 
-Then in your `CMakeLists.txt`:
-
-```cmake
-find_package(GeoUtilsCpp 1.0.1 REQUIRED)
-target_link_libraries(your_target PRIVATE geo::utils)
-```
-
-### find_package
-
-```cmake
-find_package(GeoUtilsCpp 1.0.1 REQUIRED)
-target_link_libraries(your_target PRIVATE geo::utils)
-```
+Conan Center support is pending
+[conan-io/conan-center-index#30152](https://github.com/conan-io/conan-center-index/pull/30152)
 
 ### Manual
 
 Copy the `include/` directory into your project and add it to your include path.
 
+### Using it from CMake
+
+With any of the above methods (vcpkg, Conan, FetchContent, or a system
+`find_package`), wire it into your build with:
+
+```cmake
+find_package(GeoUtilsCpp 1.0.1 REQUIRED)
+target_link_libraries(your_target PRIVATE geo::utils)
+```
+
 For more details, see [docs/getting-started.md](docs/getting-started.md).
 
 ## Usage
+
+Distance and heading between two points:
 
 ```cpp
 #include <iostream>
@@ -174,30 +144,74 @@ int main() {
 }
 ```
 
+Polygon area, point-in-polygon, path length, and path proximity:
+
+```cpp
+#include <iostream>
+#include <vector>
+
+#include <geo/poly.hpp>
+
+int main() {
+    // A small box around midtown Manhattan (vertices in CCW order).
+    std::vector<geo::LatLng> midtown = {
+        {40.74, -74.01}, {40.74, -73.96}, {40.78, -73.96}, {40.78, -74.01},
+    };
+    geo::LatLng timesSquare{40.7580, -73.9855};
+
+    std::cout << "Times Square inside: "
+              << (geo::contains(timesSquare, midtown) ? "true" : "false") << "\n";
+    std::cout << "Polygon area: "
+              << geo::area(midtown) / 1e6 << " km^2\n";
+
+    // A short polyline along Broadway, and a point near it.
+    std::vector<geo::LatLng> route = {
+        {40.7580, -73.9855},  // Times Square
+        {40.7680, -73.9818},  // Columbus Circle
+        {40.7780, -73.9740},  // Lincoln Center
+    };
+    geo::LatLng nearby{40.7670, -73.9820};
+
+    std::cout << "Route length: "
+              << geo::path_length(route) / 1000.0 << " km\n";
+    std::cout << "Point within 200 m of route: "
+              << (geo::on_path(nearby, route, /*geodesic=*/true, /*tolerance=*/200.0)
+                  ? "true" : "false")
+              << "\n";
+}
+```
+
 ## Benchmarks
 
-`geo-utils-cpp` is a near-zero-overhead wrapper over the math itself, with a
-tiny disk footprint thanks to header-only + zero dependencies.
+`geo-utils-cpp` is header-only with no runtime dependencies. Throughput on
+Apple M1 / clang 17 / `-O2 -DNDEBUG` (higher is better):
 
-| Library              | Install size  | `distance_between` (M pairs/s) | `area` (poly N=100, M polys/s) |
-| -------------------- | ------------: | -----------------------------: | -----------------------------: |
-| **geo-utils-cpp**    |     **36 KB** |                       **40.5** |                       **67.2** |
-| naive haversine      |             0 |                           38.3 |                             —  |
-| S2 Geometry          |       32.8 MB |                           82.9 |                           14.0 |
-| Boost.Geometry       |       12.3 MB |                           39.8 |                           36.2 |
-| GeographicLib        |        4.6 MB |                            1.2 |                            2.0 |
+| Library              | `distance_between` (M pairs/s) | `area` (poly N=100, M polys/s) |
+| -------------------- | -----------------------------: | -----------------------------: |
+| **geo-utils-cpp**    |                       **40.5** |                       **67.2** |
+| naive haversine      |                           38.3 |                             —  |
+| S2 Geometry          |                           82.9 |                           14.0 |
+| Boost.Geometry       |                           39.8 |                           36.2 |
+| GeographicLib        |                            1.2 |                            2.0 |
 
-Apple M1 · clang 17 · `-O2 -DNDEBUG`. Native types pre-built outside the
-timed loop — numbers reflect algorithmic cost only. Ties Boost.Geometry's
-spherical strategy on `distance` / `heading` / `path_length` within noise;
-**wins clearly on `area`** (allocation-free triangle-fan accumulator). S2
-is faster algorithmically on `distance` / `path_length` / `contains` — but
-pays a per-call `lat/lng → S2Point` conversion in real-world lat/lng
-workloads (not counted here). **130–900× smaller install footprint** than
-the alternatives. Zero overhead over hand-written haversine.
+Native types are pre-built outside the timed loop, so the table compares
+algorithmic cost rather than object-construction overhead. `geo-utils-cpp`
+matches hand-written haversine and Boost.Geometry on simple spherical operations,
+is especially strong on `area`, while S2 is faster on several operations when
+conversion from lat/lng is excluded.
 
-See [docs/benchmarks.md](docs/benchmarks.md) for the full methodology, all
-operations, and a discussion of when to reach for each library.
+See [docs/benchmarks.md](docs/benchmarks.md) for full methodology, all
+operations, and when to use each library.
+
+## When not to use
+
+- If you need high-precision ellipsoidal geodesics or sub-meter accuracy, use
+  GeographicLib.
+- If polygon containment is your main hot path, especially for larger polygons,
+  consider S2 Geometry.
+- If you need many geometry types, coordinate systems, or generic geometry
+  algorithms, Boost.Geometry may be a better fit.
+- If you need spatial indexing, use S2, CGAL, or another dedicated spatial index.
 
 ## API Reference
 

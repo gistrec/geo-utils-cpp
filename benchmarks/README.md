@@ -11,21 +11,9 @@ libraries on two axes:
 The benchmarks are **not built by default** and **not run in CI**. Set
 `-DGEO_UTILS_CPP_BUILD_BENCHMARKS=ON` to opt in.
 
-For a high-level summary of results and methodology see
-[`docs/benchmarks.md`](../docs/benchmarks.md).
-
-## Competitors
-
-| Library              | Model       | Notes                                             |
-| -------------------- | ----------- | ------------------------------------------------- |
-| **geo-utils-cpp**    | sphere      | This library — header-only, zero deps             |
-| **naive haversine**  | sphere      | ~30 lines of inline math, no library              |
-| **S2 Geometry**      | sphere      | Google's mapping library; depends on abseil       |
-| **Boost.Geometry**   | sphere\*    | `cs::spherical_equatorial<degree>` strategy       |
-| **GeographicLib**    | ellipsoid   | Karney's iterative geodesic — more accurate, slower; **no native point-in-polygon** |
-
-\* Boost.Geometry can also do ellipsoidal; we use the spherical strategy here
-to compare apples-to-apples on the algorithm we ourselves implement.
+Results, methodology, and per-library trade-offs live in
+[`docs/benchmarks.md`](../docs/benchmarks.md). This file covers only the
+mechanics: installing competitors, building, and running.
 
 ## Installing competitors
 
@@ -90,20 +78,5 @@ done
 This builds a minimal "distance + point-in-polygon" consumer against every
 library it can find, strips the resulting binary, and reports both the
 binary size and the on-disk install size of each library. Override compiler
-or flags via `CXX=` and `CXXFLAGS=`.
-
-## Methodology notes
-
-- **Same inputs everywhere.** All benchmarks pull data from
-  `common/random_data.hpp`, which is seeded deterministically.
-- **Native types are pre-built outside the timing loop** for every library.
-  The timed work is the library's per-call computation, isolated from
-  `lat/lng → native-type` plumbing — so the numbers compare algorithmic cost,
-  not data-shape conversion overhead. (`geo-utils-cpp` accepts lat/lng
-  directly, so it has nothing to pre-build; that is a separate API-shape
-  advantage and not part of these speed numbers.)
-- **Polygons are pre-built** outside the timing loop because in real code a
-  geofence is a one-time setup cost.
-- **Don't compare GeographicLib's distance/heading head-to-head as "speed".**
-  It computes a different (more accurate) thing on the WGS84 ellipsoid.
-  Treat it as a "trade-off" data point.
+or flags via `CXX=` and `CXXFLAGS=`; pass `STATIC=1` to build statically
+linked binaries instead.
