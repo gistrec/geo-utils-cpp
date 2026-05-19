@@ -113,8 +113,8 @@ Copy the `include/` directory into your project and add it to your include path.
 
 ### Using it from CMake
 
-With any of the above methods (vcpkg, Conan, FetchContent, or a system
-`find_package`), wire it into your build with:
+With any of the above methods (vcpkg, xrepo, Conan, FetchContent, or a
+system `find_package`), wire it into your build with:
 
 ```cmake
 find_package(GeoUtilsCpp 1.0.1 REQUIRED)
