@@ -2,7 +2,7 @@
 #
 # Installs the library to a temporary prefix, then configures and builds a
 # minimal consumer project (tests/consumer/) against that prefix using
-# `find_package(GeoUtilsCpp 1.0.1 REQUIRED)` and `target_link_libraries(... geo::utils)`.
+# `find_package(GeoUtilsCpp REQUIRED)` and `target_link_libraries(... geo::utils)`.
 # Runs the consumer to verify end-to-end integration.
 #
 # Catches regressions in install paths, exported target names, and
