@@ -1,5 +1,5 @@
 : 1
-name: libgeo-utils
+name: libgeo-utils-cpp
 version: 1.0.1
 project: geo-utils-cpp
 language: c++
@@ -11,4 +11,7 @@ description-type: text/markdown
 changes-file: CHANGELOG.md
 changes-type: text/markdown
 url: https://github.com/gistrec/geo-utils-cpp
+doc-url: https://github.com/gistrec/geo-utils-cpp/tree/master/docs
+src-url: https://github.com/gistrec/geo-utils-cpp
 email: gistrec@gmail.com
+build-error-email: gistrec@gmail.com

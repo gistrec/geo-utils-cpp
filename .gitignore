@@ -5,6 +5,9 @@ build/*
 !build/root.build
 build-*/
 
+# build2 dependency tool (bdep) per-developer project state, created by `bdep init`.
+.bdep/
+
 # Compiled Object files
 *.slo
 *.lo
