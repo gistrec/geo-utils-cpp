@@ -8,7 +8,10 @@
 # This is the build2 analogue of the CMake-based install.yml: it catches
 # regressions in manifest/buildfile/install-layout that the CMake, vcpkg, and
 # xrepo jobs can't see. The toolchain comes from the Homebrew bottle (fast, no
-# source build) which is available for both Linux and macOS.
+# source build). We run macOS-only: for a binless (header-only) library the
+# manifest, buildfiles, and install layout are OS-independent, so one platform
+# fully exercises the packaging — and macOS avoids the extra Linuxbrew PATH
+# wiring the Ubuntu runners would need.
 #
 # Triggered automatically on push/PR to master/main; can also be run manually
 # from the Actions tab in GitHub UI.
@@ -35,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [macos-latest]
 
     runs-on: ${{ matrix.os }}
 
