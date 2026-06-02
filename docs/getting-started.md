@@ -113,8 +113,8 @@ Build and install the library to a prefix on your machine, then have
 downstream projects locate it via `find_package`:
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --install build --prefix /usr/local
+cmake -S . -B build-cmake -DCMAKE_BUILD_TYPE=Release
+cmake --install build-cmake --prefix /usr/local
 ```
 
 ```cmake
@@ -231,9 +231,9 @@ measuring coverage — clone the repo and configure it as a top-level
 project:
 
 ```sh
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
+cmake -S . -B build-cmake
+cmake --build build-cmake
+ctest --test-dir build-cmake --output-on-failure
 ```
 
 ### Build options

@@ -107,6 +107,36 @@ conan install --requires=geo-utils-cpp/1.0.1 --build=missing
 Conan Center support is pending
 [conan-io/conan-center-index#30152](https://github.com/conan-io/conan-center-index/pull/30152)
 
+### build2 / bpkg
+
+> **Package name note:** in the build2 ecosystem this library follows the
+> build2 `libfoo` convention and is named **`libgeo-utils`** (cppget.org
+> submission pending). Everywhere else — GitHub project, CMake, vcpkg, Conan,
+> xrepo — it is named **`geo-utils-cpp`**. Both names refer to the same library,
+> same headers, same `#include <geo/...>` API.
+
+Add the dependency to your package's `manifest`:
+
+```
+depends: libgeo-utils ^1.0.1
+```
+
+And in the consuming `buildfile`:
+
+```
+import libs = libgeo-utils%lib{geo-utils}
+
+exe{hello}: cxx{hello} $libs
+```
+
+Until it is available on cppget.org, point your project at this Git repository
+so the dependency above resolves — add it to your `repositories.manifest`:
+
+```
+role: prerequisite
+location: https://github.com/gistrec/geo-utils-cpp.git#master
+```
+
 ### Manual
 
 Copy the `include/` directory into your project and add it to your include path.

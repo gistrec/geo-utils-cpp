@@ -57,17 +57,17 @@ jobs:
       - name: Cache FetchContent dependencies
         uses: actions/cache@v4
         with:
-          path: build/_deps
+          path: build-cmake/_deps
           # Include repo name in the key so a repo rename (which changes the
           # absolute work-dir path baked into FetchContent's subbuild cache)
           # invalidates stale caches automatically.
           key: ${{ runner.os }}-${{ matrix.name }}-${{ github.event.repository.name }}-googletest-1.14.0
 
       - name: Configure
-        run: cmake -S . -B build -DGEO_UTILS_CPP_BUILD_TESTS=ON -DGEO_UTILS_CPP_BUILD_EXAMPLES=ON
+        run: cmake -S . -B build-cmake -DGEO_UTILS_CPP_BUILD_TESTS=ON -DGEO_UTILS_CPP_BUILD_EXAMPLES=ON
 
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build-cmake --config Release
 
       - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure
+        run: ctest --test-dir build-cmake -C Release --output-on-failure

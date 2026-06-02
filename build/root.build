@@ -1,0 +1,5 @@
+cxx.std = 17
+
+using cxx
+
+hxx{*}: extension = hpp
