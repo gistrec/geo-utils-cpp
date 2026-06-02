@@ -1,5 +1,41 @@
 # Changelog
 
+## v1.0.2
+
+Performance optimizations to the spherical math hot path, new benchmarks, and
+expanded packaging: the library can now be consumed via vcpkg, xrepo, and
+build2 in addition to CMake / FetchContent. The public C++ API is unchanged.
+
+### Added
+
+- vcpkg packaging: installable as `geo-utils-cpp` from the vcpkg registry.
+- xrepo packaging: installable as `geo-utils-cpp` (xmake).
+- build2 / bpkg packaging (`manifest`, buildfiles) exposing a binless
+  `lib{geo-utils-cpp}` target. In the build2 ecosystem the package carries the
+  conventional `lib` prefix and is named `libgeo-utils-cpp`; everywhere else
+  (GitHub, CMake, vcpkg, Conan, xrepo) it stays `geo-utils-cpp`.
+- Benchmarks (`docs/benchmarks.md`, `benchmarks/`) comparing speed and binary
+  size against S2 Geometry, Boost.Geometry, GeographicLib, and a naive
+  haversine baseline.
+- CI smoke tests for the vcpkg, xrepo, build2, and benchmark builds.
+
+### Performance
+
+- Math hot path: precompute `kDegToRad` / `kRadToDeg` so `deg2rad` / `rad2deg`
+  use a single multiply, and make the `arc_hav` clamp branch-free.
+- `heading()`: cache the per-call latitude `sin` / `cos` values and fold the two
+  `deg2rad` conversions into one. Results are unchanged.
+
+### Docs
+
+- Expanded `docs/getting-started.md` and `docs/api.md`.
+
+### Unchanged (downstream-compatible)
+
+- Public C++ API, the `geo::` and `geo::detail::` namespaces, the public
+  headers, and the CMake `geo::utils` target — no source changes needed
+  downstream.
+
 ## v1.0.1
 
 Renamed package to `geo-utils-cpp` to avoid a name collision with an existing

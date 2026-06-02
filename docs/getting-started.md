@@ -32,7 +32,7 @@ include(FetchContent)
 FetchContent_Declare(
     GeoUtilsCpp
     GIT_REPOSITORY https://github.com/gistrec/geo-utils-cpp.git
-    GIT_TAG        v1.0.1
+    GIT_TAG        v1.0.2
 )
 FetchContent_MakeAvailable(GeoUtilsCpp)
 
@@ -64,7 +64,7 @@ for new projects, since the manifest commits alongside your source):
 Either mode, then consume it from CMake:
 
 ```cmake
-find_package(GeoUtilsCpp 1.0.1 REQUIRED)
+find_package(GeoUtilsCpp 1.0.2 REQUIRED)
 target_link_libraries(your_target PRIVATE geo::utils)
 ```
 
@@ -98,7 +98,7 @@ for the xmake variant.
 ### Conan
 
 ```sh
-conan install --requires=geo-utils-cpp/1.0.1 --build=missing
+conan install --requires=geo-utils-cpp/1.0.2 --build=missing
 ```
 
 Conan Center support is pending
@@ -118,7 +118,7 @@ cmake --install build-cmake --prefix /usr/local
 ```
 
 ```cmake
-find_package(GeoUtilsCpp 1.0.1 REQUIRED)
+find_package(GeoUtilsCpp 1.0.2 REQUIRED)
 target_link_libraries(your_target PRIVATE geo::utils)
 ```
 

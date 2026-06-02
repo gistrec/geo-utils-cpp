@@ -10,7 +10,7 @@
 #   - Our public header layout not surviving an install via xrepo
 #
 # Triggers: weekly cron + manual dispatch only. This workflow tests the
-# *released* version (currently 1.0.1) from xmake-repo, not HEAD, so running
+# *released* version from xmake-repo, not HEAD, so running
 # it on every PR/push would produce a misleading green check (it cannot fail
 # on a PR that breaks HEAD). Cron catches registry / runner drift over time;
 # use workflow_dispatch when bumping the package version. If the workflow

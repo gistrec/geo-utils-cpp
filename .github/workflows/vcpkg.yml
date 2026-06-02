@@ -10,7 +10,7 @@
 #   - Our exported CMake config / target name not surviving an install via vcpkg
 #
 # Triggers: weekly cron + manual dispatch only. This workflow tests the
-# *released* version (currently 1.0.1) from the vcpkg registry, not HEAD,
+# *released* version from the vcpkg registry, not HEAD,
 # so running it on every PR/push would produce a misleading green check
 # (it cannot fail on a PR that breaks HEAD). Cron catches registry / runner
 # drift over time; use workflow_dispatch when bumping the port version.
