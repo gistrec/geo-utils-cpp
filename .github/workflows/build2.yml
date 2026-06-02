@@ -1,0 +1,73 @@
+# build2 packaging smoke test.
+#
+# Validates the build2 metadata (manifest + buildfiles) against the real build2
+# toolchain: configures, "builds" the binless (header-only) lib{geo-utils},
+# installs to a temporary prefix, and asserts the headers land under
+# <prefix>/include/geo/ with the detail/ subdirectory preserved.
+#
+# This is the build2 analogue of the CMake-based install.yml: it catches
+# regressions in manifest/buildfile/install-layout that the CMake, vcpkg, and
+# xrepo jobs can't see. The toolchain comes from the Homebrew bottle (fast, no
+# source build) which is available for both Linux and macOS.
+#
+# Triggered automatically on push/PR to master/main; can also be run manually
+# from the Actions tab in GitHub UI.
+
+name: build2
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build2:
+    name: build2 install (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build2 toolchain
+        run: brew install build2
+
+      # In-source configuration of the project root. The cxx module is loaded
+      # (root.build), so a working C++ compiler is required even though a binless
+      # library compiles nothing; config.cxx=c++ picks the platform default
+      # (g++ on Linux, AppleClang on macOS).
+      - name: Configure
+        run: |
+          eval "$(brew shellenv)"
+          b --version
+          b configure config.cxx=c++ config.install.root="$RUNNER_TEMP/inst"
+
+      - name: Install
+        run: |
+          eval "$(brew shellenv)"
+          b install
+
+      # Assert the public entry header, a regular header, and a nested detail/
+      # header all land under <prefix>/include/geo/ — i.e. that install.subdirs
+      # preserved the detail/ subdirectory.
+      - name: Verify installed header layout
+        run: |
+          inst="$RUNNER_TEMP/inst"
+          test -f "$inst/include/geo/geo.hpp"
+          test -f "$inst/include/geo/spherical.hpp"
+          test -f "$inst/include/geo/detail/math.hpp"
+          echo "build2 install layout OK:"
+          find "$inst/include/geo" -type f | sort

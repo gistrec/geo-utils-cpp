@@ -45,13 +45,13 @@ jobs:
       # generated .pc file; the install step must not pass --prefix or the
       # .pc would point at the configure-time prefix while files land elsewhere.
       - name: Configure library
-        run: cmake -S . -B build -DCMAKE_INSTALL_PREFIX=${{ runner.temp }}/prefix
+        run: cmake -S . -B build-cmake -DCMAKE_INSTALL_PREFIX=${{ runner.temp }}/prefix
 
       - name: Build library
-        run: cmake --build build --config Release
+        run: cmake --build build-cmake --config Release
 
       - name: Install library
-        run: cmake --install build --config Release
+        run: cmake --install build-cmake --config Release
 
       # pkg-config sanity: catches regressions in the .pc template, including
       # malformed includedirs (doubled prefix → //) and non-relocatable templates

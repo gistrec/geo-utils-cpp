@@ -12,4 +12,3 @@ changes-file: CHANGELOG.md
 changes-type: text/markdown
 url: https://github.com/gistrec/geo-utils-cpp
 email: gistrec@gmail.com
-requires: c++17

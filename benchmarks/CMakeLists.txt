@@ -1,8 +1,8 @@
 # Benchmarks for geo-utils-cpp.
 #
 # Build with:
-#     cmake -B build -DGEO_UTILS_CPP_BUILD_BENCHMARKS=ON
-#     cmake --build build --target bench_all
+#     cmake -B build-bench -DGEO_UTILS_CPP_BUILD_BENCHMARKS=ON
+#     cmake --build build-bench --target bench_all
 #
 # Google Benchmark is fetched automatically. S2, Boost.Geometry, and
 # GeographicLib are looked up via find_package — missing competitors are

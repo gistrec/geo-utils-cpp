@@ -35,7 +35,7 @@ jobs:
       - name: Cache FetchContent dependencies
         uses: actions/cache@v4
         with:
-          path: build/_deps
+          path: build-cmake/_deps
           # Include repo name in the key so a repo rename (which changes the
           # absolute work-dir path baked into FetchContent's subbuild cache)
           # invalidates stale caches automatically.
@@ -45,16 +45,16 @@ jobs:
         run: pip install gcovr
 
       - name: Configure
-        run: cmake -S . -B build -DGEO_UTILS_CPP_BUILD_TESTS=ON -DGEO_UTILS_CPP_ENABLE_COVERAGE=ON
+        run: cmake -S . -B build-cmake -DGEO_UTILS_CPP_BUILD_TESTS=ON -DGEO_UTILS_CPP_ENABLE_COVERAGE=ON
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build build-cmake
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build-cmake --output-on-failure
 
       - name: Generate coverage report
-        run: gcovr --xml coverage.xml --root . --filter 'include/' build/
+        run: gcovr --xml coverage.xml --root . --filter 'include/' build-cmake/
 
       # Skip upload on PRs from forks: secrets.CODECOV_TOKEN is unavailable to
       # workflows running on PRs from forked repositories, and a missing token
