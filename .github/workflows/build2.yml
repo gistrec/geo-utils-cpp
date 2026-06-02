@@ -2,8 +2,11 @@
 #
 # Validates the build2 metadata (manifest + buildfiles) against the real build2
 # toolchain: configures, "builds" the binless (header-only) lib{geo-utils},
-# installs to a temporary prefix, and asserts the headers land under
-# <prefix>/include/geo/ with the detail/ subdirectory preserved.
+# installs to a temporary prefix, asserts the headers land under
+# <prefix>/include/geo/ with the detail/ subdirectory preserved, and finally
+# compiles + runs a consumer (tests/consumer/main.cpp) against the installed
+# package via the generated libgeo-utils.pc — so a broken export interface
+# (cxx.export.poptions / .pc) fails here too, not just a missing file.
 #
 # This is the build2 analogue of the CMake-based install.yml: it catches
 # regressions in manifest/buildfile/install-layout that the CMake, vcpkg, and
@@ -13,16 +16,34 @@
 # fully exercises the packaging — and macOS avoids the extra Linuxbrew PATH
 # wiring the Ubuntu runners would need.
 #
-# Triggered automatically on push/PR to master/main; can also be run manually
-# from the Actions tab in GitHub UI.
+# Triggered on push/PR to master/main, but only when files that affect the
+# build2 package change (manifest, buildfiles, headers, the consumer, this
+# workflow) — see the paths filter below. Can also be run manually from the
+# Actions tab in GitHub UI.
 
 name: build2
 
 on:
   push:
     branches: [master, main]
+    paths:
+      - 'manifest'
+      - 'buildfile'
+      - '**/buildfile'
+      - 'build/*.build'
+      - 'include/**'
+      - 'tests/consumer/**'
+      - '.github/workflows/build2.yml'
   pull_request:
     branches: [master, main]
+    paths:
+      - 'manifest'
+      - 'buildfile'
+      - '**/buildfile'
+      - 'build/*.build'
+      - 'include/**'
+      - 'tests/consumer/**'
+      - '.github/workflows/build2.yml'
   workflow_dispatch:
 
 permissions:
@@ -74,3 +95,21 @@ jobs:
           test -f "$inst/include/geo/detail/math.hpp"
           echo "build2 install layout OK:"
           find "$inst/include/geo" -type f | sort
+
+      # Compile + run a real consumer against the *installed* package, resolving
+      # the include path through the generated libgeo-utils.pc. This exercises
+      # the export interface end-to-end (cxx.export.poptions -> .pc -> -I), which
+      # the file-existence check above cannot. pkg-config ships on the macOS
+      # runner image; install pkgconf as a fallback just in case.
+      - name: Consumer compile + run (pkg-config)
+        run: |
+          eval "$(brew shellenv)"
+          command -v pkg-config >/dev/null || brew install pkgconf
+          inst="$RUNNER_TEMP/inst"
+          export PKG_CONFIG_PATH="$inst/lib/pkgconfig"
+          pkg-config --exists libgeo-utils
+          cflags=$(pkg-config --cflags libgeo-utils)
+          echo "pkg-config --cflags libgeo-utils: $cflags"
+          c++ -std=c++17 $cflags tests/consumer/main.cpp -o "$RUNNER_TEMP/consumer"
+          "$RUNNER_TEMP/consumer"
+          echo "build2 consumer compile + run OK"
