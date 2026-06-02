@@ -1,11 +1,11 @@
 # build2 packaging smoke test.
 #
 # Validates the build2 metadata (manifest + buildfiles) against the real build2
-# toolchain: configures, "builds" the binless (header-only) lib{geo-utils},
+# toolchain: configures, "builds" the binless (header-only) lib{geo-utils-cpp},
 # installs to a temporary prefix, asserts the headers land under
 # <prefix>/include/geo/ with the detail/ subdirectory preserved, and finally
 # compiles + runs a consumer (tests/consumer/main.cpp) against the installed
-# package via the generated libgeo-utils.pc — so a broken export interface
+# package via the generated libgeo-utils-cpp.pc — so a broken export interface
 # (cxx.export.poptions / .pc) fails here too, not just a missing file.
 #
 # This is the build2 analogue of the CMake-based install.yml: it catches
@@ -97,7 +97,7 @@ jobs:
           find "$inst/include/geo" -type f | sort
 
       # Compile + run a real consumer against the *installed* package, resolving
-      # the include path through the generated libgeo-utils.pc. This exercises
+      # the include path through the generated libgeo-utils-cpp.pc. This exercises
       # the export interface end-to-end (cxx.export.poptions -> .pc -> -I), which
       # the file-existence check above cannot. pkg-config ships on the macOS
       # runner image; install pkgconf as a fallback just in case.
@@ -107,9 +107,9 @@ jobs:
           command -v pkg-config >/dev/null || brew install pkgconf
           inst="$RUNNER_TEMP/inst"
           export PKG_CONFIG_PATH="$inst/lib/pkgconfig"
-          pkg-config --exists libgeo-utils
-          cflags=$(pkg-config --cflags libgeo-utils)
-          echo "pkg-config --cflags libgeo-utils: $cflags"
+          pkg-config --exists libgeo-utils-cpp
+          cflags=$(pkg-config --cflags libgeo-utils-cpp)
+          echo "pkg-config --cflags libgeo-utils-cpp: $cflags"
           c++ -std=c++17 $cflags tests/consumer/main.cpp -o "$RUNNER_TEMP/consumer"
           "$RUNNER_TEMP/consumer"
           echo "build2 consumer compile + run OK"

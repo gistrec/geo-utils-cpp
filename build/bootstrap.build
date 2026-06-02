@@ -1,4 +1,4 @@
-project = libgeo-utils
+project = libgeo-utils-cpp
 
 using version
 
