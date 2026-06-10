@@ -6,6 +6,7 @@
 
 using geo::LatLng;
 using geo::interpolate;
+using geo::distance_between;
 
 TEST(Spherical, interpolate) {
     LatLng up    = { 90.0,    0.0 };
@@ -58,4 +59,15 @@ TEST(Spherical, interpolate) {
     LatLng endResult = interpolate(nearA, nearB, 1.0);
     EXPECT_NEAR(endResult.lat, nearB.lat, 1e-6);
     EXPECT_NEAR(endResult.lng, nearB.lng, 1e-6);
+
+    // Regression: two nearby points straddling the antimeridian (~22cm apart).
+    // The linear fallback must wrap the longitude difference; before the fix
+    // the midpoint came out near lng=0 — ~20,000 km away from both points.
+    // Assert via distances to stay agnostic about the ±180 representation.
+    LatLng amA(0.0,  179.999999);
+    LatLng amB(0.0, -179.999999);
+    LatLng amMid = interpolate(amA, amB, 0.5);
+    EXPECT_NEAR(amMid.lat, 0.0, 1e-9);
+    EXPECT_LT(distance_between(amA, amMid), 0.15);  // ~0.11 m expected
+    EXPECT_LT(distance_between(amB, amMid), 0.15);
 }

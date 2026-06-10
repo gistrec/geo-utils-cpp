@@ -127,9 +127,12 @@ namespace geo {
     double angle = angle_between(from, to);
     double sin_angle = std::sin(angle);
     if (sin_angle < 1e-6) {
+        // Wrap the longitude difference so that two nearby points straddling
+        // the antimeridian interpolate across it (|diff| < 180), not the long
+        // way around the globe.
         return LatLng(
             from.lat + fraction * (to.lat - from.lat),
-            from.lng + fraction * (to.lng - from.lng));
+            from.lng + fraction * detail::wrap(to.lng - from.lng, -180.0, 180.0));
     }
     double a = std::sin((1.0 - fraction) * angle) / sin_angle;
     double b = std::sin(fraction * angle) / sin_angle;
