@@ -108,6 +108,47 @@ TEST(Poly, on_path) {
     }
 }
 
+TEST(Poly, on_path_closing_segment_excluded) {
+    // Same triangle as in on_edge_closing_segment: (0,10) lies only on the
+    // implicit closing segment (0,20)->(0,0), which on_path must NOT include
+    // — that is the only difference between on_path and on_edge.
+    std::vector<LatLng> triangle = { {0, 0}, {5, 10}, {0, 20} };
+    EXPECT_FALSE(on_path(LatLng(0, 10), triangle,  true));
+    EXPECT_FALSE(on_path(LatLng(0, 10), triangle, false));
+
+    // Points on real (non-closing) segments are still found.
+    EXPECT_TRUE(on_path(LatLng(0, 0),  triangle,  true));
+    EXPECT_TRUE(on_path(LatLng(0, 20), triangle, false));
+}
+
+TEST(Poly, on_path_repeated_vertex) {
+    // A zero-length segment (repeated vertex) must neither crash nor match
+    // far-away points (exercises the denom <= 0 branch of sin_delta_bearing).
+    std::vector<LatLng> repeated = { {0, 0}, {0, 5}, {0, 5}, {0, 10} };
+    for (const auto & point : { LatLng(0, 2.5), LatLng(0, 5), LatLng(0, 7.5) }) {
+        EXPECT_TRUE(on_path(point, repeated,  true));
+        EXPECT_TRUE(on_path(point, repeated, false));
+    }
+    EXPECT_FALSE(on_path(LatLng(1, 5), repeated,  true));
+    EXPECT_FALSE(on_path(LatLng(1, 5), repeated, false));
+
+    // Degenerate polyline of two identical points behaves like a single point.
+    std::vector<LatLng> dup = { {7, 3}, {7, 3} };
+    EXPECT_TRUE (on_path(LatLng(7, 3),        dup, true));
+    EXPECT_FALSE(on_path(LatLng(7, 3.000002), dup, true));
+}
+
+TEST(Poly, on_path_tolerance_meters) {
+    // Tolerance is expressed in meters: (0.0081, 5) is ~900.7 m north of the
+    // equator segment, so it is off the path at 500 m but on it at 1000 m.
+    std::vector<LatLng> equator = { {0, 0}, {0, 10} };
+    LatLng point(0.0081, 5);
+    EXPECT_FALSE(on_path(point, equator,  true,  500.0));
+    EXPECT_FALSE(on_path(point, equator, false,  500.0));
+    EXPECT_TRUE (on_path(point, equator,  true, 1000.0));
+    EXPECT_TRUE (on_path(point, equator, false, 1000.0));
+}
+
 TEST(Poly, on_path_geodesic_parameter) {
     // A constant-latitude segment is a Rhumb line but not a great circle arc.
     // (60, 15) lies exactly on the Rhumb path between (60,0) and (60,30)
