@@ -82,7 +82,13 @@ namespace geo {
     double r = std::sqrt(n1 * n1 + n2 * n2);
     if (r < 1e-10) return std::nullopt;
     double sin_arg = n4 / r;
-    if (sin_arg < -1.0 || sin_arg > 1.0) return std::nullopt;
+    // When the true solution sits exactly on the domain boundary (|n4| == r,
+    // e.g. destination at a pole), rounding in r can push n4 / r marginally
+    // outside [-1, 1] and a strict check would reject an existing solution.
+    // Clamp the FP noise; reject only genuinely unreachable destinations.
+    constexpr double kAsinDomainEps = 1e-9;
+    if (sin_arg < -1.0 - kAsinDomainEps || sin_arg > 1.0 + kAsinDomainEps) return std::nullopt;
+    sin_arg = std::clamp(sin_arg, -1.0, 1.0);
     double alpha = std::atan2(n2, n1);
     double from_lat_radians = std::asin(sin_arg) - alpha;
     if (from_lat_radians < -detail::kPi / 2 || from_lat_radians > detail::kPi / 2) {
