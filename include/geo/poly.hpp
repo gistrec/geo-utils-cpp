@@ -49,6 +49,13 @@ namespace detail {
     if (lat1 <= -kPi / 2 || lat2 <= -kPi / 2 || lat1 >= kPi / 2 || lat2 >= kPi / 2) {
         return false;
     }
+    // An edge spanning exactly 180° of longitude (lng2 == -kPi after wrapping)
+    // has an ambiguous direction — two equal great-circle arcs connect its
+    // endpoints. Never count it as an intersection (upstream PolyUtil
+    // convention); without this, tan_lat_gc divides by sin(-π) ≈ -1.2e-16.
+    if (lng2 <= -kPi) {
+        return false;
+    }
     double linear_lat = (lat1 * (lng2 - lng3) + lat2 * lng3) / lng2;
     if (lat1 >= 0 && lat2 >= 0 && lat3 < linear_lat) {
         return false;

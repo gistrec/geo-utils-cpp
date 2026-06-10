@@ -79,3 +79,28 @@ TEST(Poly, contains) {
         EXPECT_FALSE(contains(point, poly, false));
     }
 }
+
+TEST(Poly, contains_180deg_edge) {
+    // Edge (10,0)->(-20,180) spans exactly 180° of longitude — its direction
+    // is ambiguous (two equal great-circle arcs), so it never counts as an
+    // intersection of the South-Pole test ray (upstream PolyUtil convention).
+    // Without the lng2 <= -π guard this evaluated tan_lat_gc with
+    // sin(-π) ≈ -1.2e-16 in the denominator, flipping parity arbitrarily.
+    std::vector<LatLng> tri = { {10, 0}, {-20, 180}, {40, 90} };
+    for (const auto & point : { LatLng(0, -90), LatLng(-60, 0) }) {
+        EXPECT_FALSE(contains(point, tri,  true));
+        EXPECT_FALSE(contains(point, tri, false));
+    }
+    EXPECT_TRUE(contains(LatLng(90, 0), tri,  true));
+    EXPECT_TRUE(contains(LatLng(90, 0), tri, false));
+
+    // Degenerate "hemisphere": every edge spans 180°, so no test ray ever
+    // crosses an edge; only vertex matches count as inside.
+    std::vector<LatLng> hemi = { {0, 0}, {0, 180} };
+    for (const auto & point : { LatLng(45, 90), LatLng(45, -90) }) {
+        EXPECT_FALSE(contains(point, hemi,  true));
+        EXPECT_FALSE(contains(point, hemi, false));
+    }
+    EXPECT_TRUE(contains(LatLng(0, 0), hemi,  true));
+    EXPECT_TRUE(contains(LatLng(0, 0), hemi, false));
+}
