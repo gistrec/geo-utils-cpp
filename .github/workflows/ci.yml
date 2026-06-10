@@ -52,7 +52,7 @@ jobs:
       CXX: ${{ matrix.cxx }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Cache FetchContent dependencies
         uses: actions/cache@v4

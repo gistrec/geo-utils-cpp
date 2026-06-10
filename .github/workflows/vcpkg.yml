@@ -48,7 +48,7 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # GH-hosted runners ship vcpkg pre-installed at $VCPKG_INSTALLATION_ROOT.
       # The bundled checkout can lag the registry by days/weeks, so sync to
