@@ -135,7 +135,7 @@ std::cout << geo::heading(east, equator); // -90 (due west)
 - `distance` — the distance to travel, in meters
 - `heading` — the heading in degrees clockwise from north
 
-Returns: `LatLng` — the destination point.
+Returns: `LatLng` — the destination point. The longitude of the result is normalized to `[-180, 180)`.
 
 ```cpp
 geo::LatLng front{0, 0};
@@ -147,6 +147,9 @@ auto up    = geo::offset(front, quarter,   0); // {  90,    0}
 auto down  = geo::offset(front, quarter, 180); // { -90,    0}
 auto left  = geo::offset(front, quarter, -90); // {   0,  -90}
 auto right = geo::offset(front, quarter,  90); // {   0,   90}
+
+// Crossing the antimeridian: the longitude comes back normalized.
+auto wrapped = geo::offset({0, 170}, 3'000'000, 90); // {0, -163.02}, not {0, 196.98}
 ```
 
 ---
@@ -159,7 +162,7 @@ auto right = geo::offset(front, quarter,  90); // {   0,   90}
 - `distance` — the distance travelled, in meters
 - `heading` — the heading in degrees clockwise from north
 
-Returns: `std::optional<LatLng>` — the origin, or `std::nullopt` if unreachable.
+Returns: `std::optional<LatLng>` — the origin, or `std::nullopt` if unreachable. The longitude of the result is normalized to `[-180, 180)`.
 
 ```cpp
 geo::LatLng start{40.0, -74.0};

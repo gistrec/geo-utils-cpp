@@ -8,6 +8,7 @@ using geo::offset;
 using geo::offset_origin;
 using geo::detail::kEarthRadius;
 using geo::detail::kPi;
+using geo::detail::rad2deg;
 
 TEST(Spherical, offset_origin) {
     LatLng front = {  0.0,    0.0 };
@@ -72,5 +73,33 @@ TEST(Spherical, offset_origin) {
         auto r = offset_origin(to, half_pi_R, 45.0);
         ASSERT_TRUE(r.has_value());
         EXPECT_NEAR_LatLng(to, offset(r.value(), half_pi_R, 45.0));
+    }
+}
+
+TEST(Spherical, offset_origin_lng_normalized) {
+    // The raw origin longitude (to.lng - atan2(...)) spans up to ±360° when
+    // the origin lies across the antimeridian from the destination; it must
+    // come back wrapped into [-180, 180).
+    const double d = 3.0e6;  // 3000 km ≈ 26.98° of arc at the equator
+    const double d_deg = rad2deg(d / kEarthRadius);
+
+    // Travelling east to (0,-170): the origin lies west across the
+    // antimeridian, raw lng ≈ -196.98 → wrapped ≈ +163.02.
+    {
+        auto r = offset_origin(LatLng(0, -170), d, 90);
+        ASSERT_TRUE(r.has_value());
+        EXPECT_NEAR(r->lat, 0.0, 1e-9);
+        EXPECT_NEAR(r->lng, -170.0 - d_deg + 360.0, 1e-9);
+        // And the wrapped origin still maps back onto the destination.
+        EXPECT_NEAR_LatLng(LatLng(0, -170), offset(r.value(), d, 90));
+    }
+
+    // Travelling west to (0,170): the origin lies east across the
+    // antimeridian, raw lng ≈ +196.98 → wrapped ≈ -163.02.
+    {
+        auto r = offset_origin(LatLng(0, 170), d, -90);
+        ASSERT_TRUE(r.has_value());
+        EXPECT_NEAR(r->lat, 0.0, 1e-9);
+        EXPECT_NEAR(r->lng, 170.0 + d_deg - 360.0, 1e-9);
     }
 }
