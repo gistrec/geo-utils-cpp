@@ -4,6 +4,7 @@
 #include "../test_helpers.hpp"
 
 using geo::LatLng;
+using geo::distance_between;
 using geo::offset;
 using geo::offset_origin;
 using geo::detail::kEarthRadius;
@@ -73,4 +74,33 @@ TEST(Spherical, offset_origin) {
         ASSERT_TRUE(r.has_value());
         EXPECT_NEAR_LatLng(to, offset(r.value(), half_pi_R, 45.0));
     }
+
+    // Regression: destination at the North Pole, heading 0. Mathematically
+    // sin_arg == 1 exactly, but rounding in r = sqrt(n1² + n2²) can push
+    // n4 / r marginally above 1; a strict domain check used to reject such
+    // queries as nullopt depending on how r rounded for the given distance
+    // (e.g. frac 0.1 and 0.4 failed while 0.2 and 0.3 worked).
+    // Tolerances are looser than elsewhere: asin is ill-conditioned at the
+    // domain boundary, so 1 ulp of input noise moves the result by ~0.1 m.
+    // Verify via round-trip distance: longitude is degenerate at the pole.
+    for (double frac : {0.1, 0.2, 0.25, 0.3, 0.4}) {
+        const double d = frac * kPi * kEarthRadius;
+        auto r = offset_origin(LatLng(90, 0), d, 0);
+        ASSERT_TRUE(r.has_value()) << "frac=" << frac;
+        EXPECT_NEAR(r->lat, 90.0 - frac * 180.0, 1e-5) << "frac=" << frac;
+        EXPECT_LT(distance_between(LatLng(90, 0), offset(r.value(), d, 0)), 0.5) << "frac=" << frac;
+    }
+
+    // South Pole, heading 180 — exercises the sin_arg < -1 side of the same issue.
+    {
+        const double d = 0.1 * kPi * kEarthRadius;
+        auto r = offset_origin(LatLng(-90, 0), d, 180);
+        ASSERT_TRUE(r.has_value());
+        EXPECT_NEAR(r->lat, -72.0, 1e-5);
+        EXPECT_LT(distance_between(LatLng(-90, 0), offset(r.value(), d, 180)), 0.5);
+    }
+
+    // The domain-boundary tolerance must not resurrect genuinely unreachable
+    // destinations: here sin_arg ≈ 1.005, far beyond FP noise.
+    EXPECT_FALSE(offset_origin(LatLng(89, 0), 0.1 * kEarthRadius, 90).has_value());
 }
