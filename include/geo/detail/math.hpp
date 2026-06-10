@@ -75,7 +75,10 @@ inline constexpr double kRadToDeg = 180.0 / kPi;
 
 // Returns hav(asin(x)).
 [[nodiscard]] inline double hav_from_sin(double x) noexcept {
-    double x2 = x * x;
+    // Clamp: |x| can exceed 1 by FP noise (e.g. the sin_delta_bearing
+    // quotient); sqrt(1 - x2) would return NaN and silently break
+    // is_on_segment_gc.
+    double x2 = std::min(x * x, 1.0);
     return x2 / (1.0 + std::sqrt(1.0 - x2)) * 0.5;
 }
 
