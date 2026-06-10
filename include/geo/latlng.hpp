@@ -19,9 +19,9 @@
 namespace geo {
 
 struct LatLng {
-    // Default tolerance used by operator==. Roughly 0.1 nanometers on Earth —
-    // tighter than any practical computation, but loose enough for round-trips
-    // through deg2rad/rad2deg and similar identities.
+    // Default tolerance used by operator==. Roughly 0.1 micrometers (111 nm)
+    // on Earth — tighter than any practical computation, but loose enough for
+    // round-trips through deg2rad/rad2deg and similar identities.
     static constexpr double kDefaultEpsilon = 1e-12;
 
     double lat;
