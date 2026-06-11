@@ -45,6 +45,7 @@ namespace geo {
 /**
  * Returns the LatLng resulting from moving a distance from an origin
  * in the specified heading (expressed in degrees clockwise from north).
+ * The longitude of the result is normalized to the range [-180, 180).
  */
 [[nodiscard]] inline LatLng offset(const LatLng& from, double distance, double heading_deg) noexcept {
     distance /= detail::kEarthRadius;
@@ -60,13 +61,16 @@ namespace geo {
         sin_distance * cos_from_lat * std::sin(heading_rad),
         cos_distance - sin_from_lat * sin_lat);
 
+    // from_lng and d_lng are each in [-π, π], so their raw sum spans up to
+    // ±2π; wrap it back into the documented LatLng longitude range.
     return LatLng(detail::rad2deg(std::asin(std::clamp(sin_lat, -1.0, 1.0))),
-                  detail::rad2deg(from_lng + d_lng));
+                  detail::wrap(detail::rad2deg(from_lng + d_lng), -180.0, 180.0));
 }
 
 /**
  * Returns the location of origin when provided with a destination,
  * meters travelled and original heading. Returns nullopt when no solution exists.
+ * The longitude of the result is normalized to the range [-180, 180).
  */
 [[nodiscard]] inline std::optional<LatLng> offset_origin(const LatLng& to, double distance, double heading_deg) noexcept {
     double heading_rad = detail::deg2rad(heading_deg);
@@ -97,7 +101,10 @@ namespace geo {
     if (from_lat_radians < -detail::kPi / 2 || from_lat_radians > detail::kPi / 2) return std::nullopt;
     double from_lng_radians = detail::deg2rad(to.lng) -
         std::atan2(n3, n1 * std::cos(from_lat_radians) - n2 * std::sin(from_lat_radians));
-    return LatLng(detail::rad2deg(from_lat_radians), detail::rad2deg(from_lng_radians));
+    // to.lng - atan2(...) spans up to ±2π; wrap it back into the documented
+    // LatLng longitude range.
+    return LatLng(detail::rad2deg(from_lat_radians),
+                  detail::wrap(detail::rad2deg(from_lng_radians), -180.0, 180.0));
 }
 
 /**
