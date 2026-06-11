@@ -23,11 +23,13 @@ are internal and not part of the supported API.
   (`area`, `path_length`, `contains`, `on_edge`, `on_path`) are not
   marked `noexcept` because the generic `Path` contract doesn't
   constrain `operator[]` / `size()` to be `noexcept`; they don't throw
-  themselves.
+  themselves. `encode` and `decode` return owning containers and can
+  throw `std::bad_alloc` on allocation failure.
 - **Include strategy.** Each subsystem has its own header:
   `<geo/latlng.hpp>` (types), `<geo/spherical.hpp>` (distance, heading,
-  area), `<geo/poly.hpp>` (point-in-polygon, on-path). The umbrella
-  `<geo/geo.hpp>` pulls all three in for convenience.
+  area), `<geo/poly.hpp>` (point-in-polygon, on-path), `<geo/encoding.hpp>`
+  (encoded polylines). The umbrella `<geo/geo.hpp>` pulls all four in for
+  convenience.
 
 ## LatLng
 
@@ -71,8 +73,8 @@ a.approx_equal(b, 1e-5);   // true (1e-5° ≈ 1 m on equator)
 A series of connected coordinates in an ordered sequence.
 
 `Path` is a template parameter accepted by `path_length`, `area`, `signed_area`,
-`contains`, `on_edge`, and `on_path`. It must be a random-access container of
-`geo::LatLng` — specifically, it must support:
+`contains`, `on_edge`, `on_path`, and `encode`. It must be a random-access
+container of `geo::LatLng` — specifically, it must support:
 
 - `path.size()` returning a size in elements
 - `path[i]` returning a `LatLng` (or something convertible) for `0 ≤ i < size`
@@ -365,6 +367,49 @@ geo::LatLng point{28.05342, -82.41594};
 
 // Point lies ~38 m east-northeast of the segment
 std::cout << geo::distance_to_segment(point, start, end);
+```
+
+---
+
+## Polyline encoding
+
+Encoder and decoder for the [Encoded Polyline Algorithm Format](https://developers.google.com/maps/documentation/utilities/polylinealgorithm)
+used by the Google Maps APIs.
+
+```cpp
+#include <geo/encoding.hpp>
+```
+
+### encode
+
+**`geo::encode(const Path& path)`** — Encodes a sequence of LatLngs into an encoded path string. Coordinates are quantized to `1e-5` degrees (about one meter), so an encode/decode round-trip is lossy beyond that precision.
+
+Returns: `std::string` — the encoded polyline; empty for an empty path.
+
+```cpp
+std::vector<geo::LatLng> path = { {38.5, -120.2}, {40.7, -120.95}, {43.252, -126.453} };
+
+std::cout << geo::encode(path); // "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+```
+
+---
+
+### decode
+
+**`geo::decode(std::string_view encoded)`** — Decodes an encoded path string into a sequence of LatLngs on the `1e-5`-degree grid.
+
+Returns: `std::vector<LatLng>` — the decoded points; empty for an empty string.
+
+> **Note.** The input is assumed to be a well-formed encoded polyline.
+> Decoding any string is memory-safe, but malformed input yields
+> unspecified coordinates; a string truncated mid-point yields the points
+> decoded so far and drops the incomplete trailing point.
+
+```cpp
+auto path = geo::decode("_p~iF~ps|U_ulLnnqC_mqNvxq`@");
+
+std::cout << path.size(); // 3
+std::cout << path[0];     // LatLng(38.5, -120.2)
 ```
 
 ---
