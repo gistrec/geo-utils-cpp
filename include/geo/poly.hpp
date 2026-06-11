@@ -237,8 +237,18 @@ template <typename Path>
 }
 
 /**
- * Computes the spherical distance between the point p and the line segment
+ * Computes the distance between the point p and the line segment
  * (start, end), in meters.
+ *
+ * Approximation: the closest point is found by planar projection in raw
+ * (lat, lng) coordinate space, then the great-circle distance to it is
+ * returned. Accurate for short segments away from the poles. Limitations:
+ * - longitude is not scaled by cos(lat), so the projection skews at high
+ *   latitudes and the result can overshoot by a few percent around lat 80°;
+ * - longitudes are used as-is: a segment crossing the antimeridian (±180°)
+ *   is treated as spanning nearly the whole globe and yields meaningless
+ *   results (a point on such a segment can report a distance of kilometers).
+ * For tolerance checks against true geodesic segments use on_path instead.
  */
 [[nodiscard]] inline double distance_to_segment(const LatLng& p, const LatLng& start, const LatLng& end) noexcept {
     if (start == end) {

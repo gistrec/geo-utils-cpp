@@ -50,7 +50,7 @@ geo::LatLng otherPoint = northPole;
 ### Equality
 
 `operator==` performs an **approximate** comparison with tolerance
-`LatLng::kDefaultEpsilon` (= `1e-12` degrees, ≈ 0.1 nanometers on Earth).
+`LatLng::kDefaultEpsilon` (= `1e-12` degrees, ≈ 0.1 micrometers on Earth).
 Longitudes are compared modulo 360°, so `LatLng(0, 180) == LatLng(0, -180)`.
 
 For custom tolerance — e.g. comparing computation results at meter scale —
@@ -354,9 +354,19 @@ std::cout << geo::on_path(geo::LatLng{5, 0}, polyline); // false — closing edg
 
 ### distance_to_segment
 
-**`geo::distance_to_segment(const LatLng& point, const LatLng& start, const LatLng& end)`** — Returns the distance in meters from `point` to the closest point on the line segment `[start, end]` on the sphere. If the perpendicular foot falls outside the segment, returns the distance to the nearer endpoint.
+**`geo::distance_to_segment(const LatLng& point, const LatLng& start, const LatLng& end)`** — Returns the distance in meters from `point` to the closest point on the line segment `[start, end]`. If the perpendicular foot falls outside the segment, returns the distance to the nearer endpoint.
 
 Returns: `double` — distance in meters, always ≥ 0.
+
+> **Approximation.** The closest point is found by planar projection in raw
+> `(lat, lng)` coordinate space (same algorithm as android-maps-utils
+> `PolyUtil.distanceToLine`), and the great-circle distance to that point is
+> returned. Accurate for short segments away from the poles. Two limitations:
+> longitude is not scaled by `cos(lat)`, so the result can overshoot by a few
+> percent at high latitudes (around `lat 80°`); and longitudes are used as-is,
+> so segments crossing the antimeridian (`±180°`) yield meaningless results —
+> a point lying exactly on such a segment can report kilometers of distance.
+> For tolerance checks against true geodesic segments, use `on_path`.
 
 ```cpp
 geo::LatLng start{28.05359, -82.41632};

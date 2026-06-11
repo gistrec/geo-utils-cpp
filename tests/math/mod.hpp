@@ -76,6 +76,15 @@ TEST(Math, hav_from_sin) {
     EXPECT_NEAR(sin_from_hav(hav_from_sin(0.7)), 0.7, 1e-10);
 }
 
+TEST(Math, hav_from_sin_clamp) {
+    // Floating-point rounding can push |x| slightly above 1 (e.g. the
+    // sin_delta_bearing quotient in poly.hpp). hav_from_sin must clamp rather
+    // than feed a negative value to sqrt and return NaN — a NaN cross-track
+    // silently turns is_on_segment_gc into a false positive.
+    EXPECT_NEAR(hav_from_sin(std::nextafter( 1.0,  2.0)), 0.5, 1e-10); // x > 1  → hav(π/2)
+    EXPECT_NEAR(hav_from_sin(std::nextafter(-1.0, -2.0)), 0.5, 1e-10); // x < -1 → hav(π/2)
+}
+
 TEST(Math, sin_sum_from_hav) {
     // sin(0 + 0) == 0
     EXPECT_NEAR(sin_sum_from_hav(0.0, 0.0), 0.0, 1e-10);
