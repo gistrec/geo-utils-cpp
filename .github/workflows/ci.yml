@@ -54,14 +54,23 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Resolve runner image version (cache key)
+        id: image
+        shell: bash
+        run: echo "version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
       - name: Cache FetchContent dependencies
         uses: actions/cache@v4
         with:
           path: build-cmake/_deps
           # Include repo name in the key so a repo rename (which changes the
           # absolute work-dir path baked into FetchContent's subbuild cache)
-          # invalidates stale caches automatically.
-          key: ${{ runner.os }}-${{ matrix.name }}-${{ github.event.repository.name }}-googletest-1.14.0
+          # invalidates stale caches automatically. Include the runner image
+          # version so a toolchain bump (e.g. Windows switching its default
+          # generator from "Visual Studio 17 2022" to "18 2026") invalidates the
+          # cached googletest subbuild, which otherwise trips CMake's
+          # generator-mismatch check.
+          key: ${{ runner.os }}-${{ matrix.name }}-${{ github.event.repository.name }}-img${{ steps.image.outputs.version }}-googletest-1.14.0
 
       - name: Configure
         run: cmake -S . -B build-cmake -DGEO_UTILS_CPP_BUILD_TESTS=ON -DGEO_UTILS_CPP_BUILD_EXAMPLES=ON
