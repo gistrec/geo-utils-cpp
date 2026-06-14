@@ -32,14 +32,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Resolve runner image version (cache key)
+        id: image
+        shell: bash
+        run: echo "version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
       - name: Cache FetchContent dependencies
         uses: actions/cache@v4
         with:
           path: build-cmake/_deps
           # Include repo name in the key so a repo rename (which changes the
           # absolute work-dir path baked into FetchContent's subbuild cache)
-          # invalidates stale caches automatically.
-          key: ${{ runner.os }}-coverage-${{ github.event.repository.name }}-googletest-1.14.0
+          # invalidates stale caches automatically. Include the runner image
+          # version so a toolchain bump invalidates the cached googletest
+          # subbuild instead of tripping CMake's generator/compiler checks.
+          key: ${{ runner.os }}-coverage-${{ github.event.repository.name }}-img${{ steps.image.outputs.version }}-googletest-1.14.0
 
       - name: Install gcovr
         run: pip install gcovr
