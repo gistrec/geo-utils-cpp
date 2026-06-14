@@ -125,6 +125,12 @@ std::cout << geo::heading(equator, east); // +90 (due east)
 std::cout << geo::heading(east, equator); // -90 (due west)
 ```
 
+> **Note.** When `from == to`, or the two points are exactly antipodal,
+> the heading is mathematically undefined. The returned value is
+> unspecified and may differ across platforms (e.g. `0` or `-180`,
+> depending on how the compiler contracts floating-point operations
+> into FMA instructions).
+
 ---
 
 ### offset
@@ -197,6 +203,12 @@ geo::LatLng front{0, 0};
 assert(geo::LatLng{1,  0} == geo::interpolate(front, up,  1 / 90.0));
 assert(geo::LatLng{89, 0} == geo::interpolate(front, up, 89 / 90.0));
 ```
+
+> **Note.** Exactly antipodal endpoints have no unique great circle, so
+> the result is unspecified. Nearly antipodal endpoints (central angle
+> within ~`1e-6` rad of 180°) fall back to linear interpolation in raw
+> `(lat, lng)` space and can land thousands of kilometers off any true
+> arc — behavior inherited from android-maps-utils.
 
 ---
 
@@ -314,6 +326,11 @@ std::cout << geo::contains(geo::LatLng{90, 0},  aroundNorthPole); // true
 std::cout << geo::contains(geo::LatLng{-90, 0}, aroundNorthPole); // false
 ```
 
+> **Note.** An edge whose endpoints lie exactly 180° of longitude apart
+> has an ambiguous direction — two equal-length arcs connect them. Such
+> edges are never counted as crossed by the point-in-polygon test
+> (android-maps-utils convention).
+
 ---
 
 ### on_edge
@@ -366,6 +383,11 @@ Returns: `double` — distance in meters, always ≥ 0.
 > percent at high latitudes (around `lat 80°`); and longitudes are used as-is,
 > so segments crossing the antimeridian (`±180°`) yield meaningless results —
 > a point lying exactly on such a segment can report kilometers of distance.
+> Degenerate segments are detected with the approximate `LatLng` equality
+> (longitudes compared modulo 360°), so `start == end` — including pairs
+> like `(0, -180)` and `(0, 180)` — returns the plain distance to that
+> point. The Java original compares coordinates exactly here; this port
+> deliberately diverges.
 > For tolerance checks against true geodesic segments, use `on_path`.
 
 ```cpp
