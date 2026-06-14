@@ -48,7 +48,7 @@ TEST(Poly, contains) {
 
     // Around North Pole.
     std::vector<LatLng> northPole = { {89, 0}, {89, 120}, {89, -120} };
-    for (const auto & point : { LatLng(90, 0), /* LatLng(90, 180), */ LatLng(90, -90) }) {
+    for (const auto & point : { LatLng(90, 0), LatLng(90, 180), LatLng(90, -90) }) {
         EXPECT_TRUE(contains(point, northPole,  true));
         EXPECT_TRUE(contains(point, northPole, false));
     }
@@ -59,7 +59,7 @@ TEST(Poly, contains) {
 
     // Around South Pole.
     std::vector<LatLng> southPole = { {-89, 0}, {-89, 120}, {-89, -120} };
-    for (const auto & point : { LatLng(90, 0), /* LatLng(90, 180), */ LatLng(90, -90), LatLng(0, 0) }) {
+    for (const auto & point : { LatLng(90, 0), LatLng(90, 180), LatLng(90, -90), LatLng(0, 0) }) {
         EXPECT_TRUE(contains(point, southPole,  true));
         EXPECT_TRUE(contains(point, southPole, false));
     }

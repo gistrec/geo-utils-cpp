@@ -108,6 +108,19 @@ TEST(Poly, on_edge) {
     }
 }
 
+TEST(Poly, on_edge_closing_segment) {
+    // The closing segment (0,20)->(0,0) of this triangle runs along the
+    // equator, where great-circle and Rhumb paths coincide. (0,10) lies only
+    // on that closing segment — on_edge must include it (polygon is closed).
+    std::vector<LatLng> triangle = { {0, 0}, {5, 10}, {0, 20} };
+    EXPECT_TRUE(on_edge(LatLng(0, 10), triangle,  true));
+    EXPECT_TRUE(on_edge(LatLng(0, 10), triangle, false));
+
+    // Vertices are on the edge too.
+    EXPECT_TRUE(on_edge(LatLng(0, 0),  triangle,  true));
+    EXPECT_TRUE(on_edge(LatLng(0, 20), triangle, false));
+}
+
 TEST(Poly, on_edge_geodesic_parameter) {
     // A constant-latitude segment is a Rhumb line but not a great circle arc.
     // (60, 15) lies exactly on the Rhumb path between (60,0) and (60,30)
