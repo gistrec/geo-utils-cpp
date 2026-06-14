@@ -15,8 +15,10 @@
 
 #include "poly/contains.hpp"
 #include "poly/distance_to_segment.hpp"
+#include "poly/is_closed_polygon.hpp"
 #include "poly/on_edge.hpp"
 #include "poly/on_path.hpp"
+#include "poly/simplify.hpp"
 
 #include "encoding/decode.hpp"
 #include "encoding/encode.hpp"

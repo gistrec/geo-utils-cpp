@@ -16,6 +16,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <utility>
+#include <vector>
 
 #include "detail/math.hpp"
 #include "latlng.hpp"
@@ -279,6 +281,93 @@ template <typename Path>
     }
     LatLng su(start.lat + u * (end.lat - start.lat), start.lng + u * (end.lng - start.lng));
     return distance_between(p, su);
+}
+
+/**
+ * Returns whether the path is a closed polygon: non-empty, with equal first
+ * and last points. Equality is the approximate LatLng comparison, with
+ * longitudes compared modulo 360°.
+ */
+template <typename Path>
+[[nodiscard]] bool is_closed_polygon(const Path& poly) {
+    std::size_t size = poly.size();
+    if (size == 0) {
+        return false;
+    }
+    const auto& first = poly[0];
+    const auto& last = poly[size - 1];
+    return LatLng(first.lat, first.lng) == LatLng(last.lat, last.lng);
+}
+
+/**
+ * Simplifies the given polyline or polygon using the Douglas-Peucker
+ * decimation algorithm: keeps the vertices that lie farther than tolerance
+ * meters from the simplified shape, drops the rest. The first and last
+ * points are always kept, and every returned point is one of the input
+ * points. A closed polygon (is_closed_polygon) is simplified including its
+ * closing segment.
+ *
+ * Distances are measured with distance_to_segment, so its approximation
+ * limits apply — in particular for segments crossing the antimeridian.
+ * Worst-case complexity is O(n^2).
+ */
+template <typename Path>
+[[nodiscard]] std::vector<LatLng> simplify(const Path& poly, double tolerance) {
+    std::size_t n = poly.size();
+    if (n == 0) {
+        return {};
+    }
+
+    // Work on a copy: for a closed polygon the last point is nudged slightly
+    // off the first one so Douglas-Peucker "sees" the closing segment
+    // (upstream PolyUtil trick); the output is filtered from the original
+    // points, so the nudge never leaks into the result.
+    std::vector<LatLng> working;
+    working.reserve(n);
+    for (const auto& point : poly) {
+        working.emplace_back(point.lat, point.lng);
+    }
+    if (is_closed_polygon(working)) {
+        constexpr double offset = 1e-11;
+        working.back() = LatLng(working.back().lat + offset, working.back().lng + offset);
+    }
+
+    std::vector<bool> keep(n, false);
+    keep.front() = true;
+    keep.back() = true;
+
+    if (n > 2) {
+        std::vector<std::pair<std::size_t, std::size_t>> stack;
+        stack.emplace_back(0, n - 1);
+        while (!stack.empty()) {
+            const auto [start, end] = stack.back();
+            stack.pop_back();
+
+            double max_dist = 0;
+            std::size_t max_idx = 0;
+            for (std::size_t i = start + 1; i < end; ++i) {
+                double dist = distance_to_segment(working[i], working[start], working[end]);
+                if (dist > max_dist) {
+                    max_dist = dist;
+                    max_idx = i;
+                }
+            }
+            if (max_dist > tolerance) {
+                keep[max_idx] = true;
+                stack.emplace_back(start, max_idx);
+                stack.emplace_back(max_idx, end);
+            }
+        }
+    }
+
+    std::vector<LatLng> result;
+    for (std::size_t i = 0; i < n; ++i) {
+        if (keep[i]) {
+            const auto& point = poly[i];
+            result.emplace_back(point.lat, point.lng);
+        }
+    }
+    return result;
 }
 
 }  // namespace geo

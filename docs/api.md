@@ -23,8 +23,8 @@ are internal and not part of the supported API.
   (`area`, `path_length`, `contains`, `on_edge`, `on_path`) are not
   marked `noexcept` because the generic `Path` contract doesn't
   constrain `operator[]` / `size()` to be `noexcept`; they don't throw
-  themselves. `encode` and `decode` return owning containers and can
-  throw `std::bad_alloc` on allocation failure.
+  themselves. `encode`, `decode`, and `simplify` return owning
+  containers and can throw `std::bad_alloc` on allocation failure.
 - **Include strategy.** Each subsystem has its own header:
   `<geo/latlng.hpp>` (types), `<geo/spherical.hpp>` (distance, heading,
   area), `<geo/poly.hpp>` (point-in-polygon, on-path), `<geo/encoding.hpp>`
@@ -73,8 +73,9 @@ a.approx_equal(b, 1e-5);   // true (1e-5° ≈ 1 m on equator)
 A series of connected coordinates in an ordered sequence.
 
 `Path` is a template parameter accepted by `path_length`, `area`, `signed_area`,
-`contains`, `on_edge`, `on_path`, and `encode`. It must be a random-access
-container of `geo::LatLng` — specifically, it must support:
+`contains`, `on_edge`, `on_path`, `is_closed_polygon`, `simplify`, and `encode`.
+It must be a random-access container of `geo::LatLng` — specifically, it must
+support:
 
 - `path.size()` returning a size in elements
 - `path[i]` returning a `LatLng` (or something convertible) for `0 ≤ i < size`
@@ -380,6 +381,51 @@ geo::LatLng point{28.05342, -82.41594};
 
 // Point lies ~38 m east-northeast of the segment
 std::cout << geo::distance_to_segment(point, start, end);
+```
+
+---
+
+### is_closed_polygon
+
+**`geo::is_closed_polygon(const Path& poly)`** — Returns whether the path is a closed polygon: non-empty, with equal first and last points. Equality is the approximate `LatLng` comparison (`operator==`), so longitudes are compared modulo 360° — a path from `(10, 180)` ending at `(10, -180)` counts as closed. A single point counts as closed.
+
+Returns: `bool` — `true` if the path is non-empty and its first and last points are equal.
+
+```cpp
+std::vector<geo::LatLng> poly = {
+    {28.06025, -82.41030}, {28.06129, -82.40945}, {28.06206, -82.40917},
+};
+
+std::cout << geo::is_closed_polygon(poly); // false
+poly.push_back(poly.front());
+std::cout << geo::is_closed_polygon(poly); // true
+```
+
+---
+
+### simplify
+
+**`geo::simplify(const Path& poly, double tolerance)`** — Simplifies the given polyline or polygon using the [Douglas–Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) decimation algorithm: keeps the vertices that lie farther than `tolerance` meters from the simplified shape, drops the rest. The first and last points are always kept, every returned point is one of the input points (in input order), and the input is not modified.
+
+A closed polygon (in the `is_closed_polygon` sense) is simplified including its closing segment, so the result is a closed polygon too.
+
+- `tolerance` — maximum distance in meters a dropped vertex may lie from the simplified path; larger values drop more points.
+
+Returns: `std::vector<LatLng>` — the simplified path; empty only for an empty input.
+
+> **Note.** Distances are measured with `distance_to_segment`, so its
+> approximation limits apply — in particular for segments crossing the
+> antimeridian. Worst-case complexity is O(n²) in the number of input
+> points.
+
+```cpp
+std::vector<geo::LatLng> route = {
+    {28.06025, -82.41030}, {28.06129, -82.40945}, {28.06206, -82.40917},
+    {28.06125, -82.40850}, {28.06035, -82.40834}, {28.06038, -82.40924},
+};
+
+auto simplified = geo::simplify(route, /*tolerance=*/88.0);
+std::cout << simplified.size(); // 4 — two vertices within 88 m are dropped
 ```
 
 ---
