@@ -51,10 +51,12 @@ Earth approximation model.
 
 - **Lat/lng-native API** — pass latitude/longitude coordinates directly, no
   framework-specific point types to convert through.
-- **Header-only, dependency-free** — about 36 KB across 4 headers; nothing
+- **Header-only, dependency-free** — about 40 KB across 5 headers; nothing
   to build or link.
 - **Spherical math** — distance, heading, offset, interpolation, area.
 - **Polygon utilities** — point-in-polygon and path proximity checks.
+- **Polyline encoding** — `encode`/`decode` for the Google Encoded Polyline
+  format.
 - **Fast** — matches hand-written haversine on `distance`; especially strong
   on polygon `area` (see [benchmarks](docs/benchmarks.md)).
 - **Focused scope** — intentionally small API for GPS, navigation, tracking,

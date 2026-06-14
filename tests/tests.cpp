@@ -18,6 +18,9 @@
 #include "poly/on_edge.hpp"
 #include "poly/on_path.hpp"
 
+#include "encoding/decode.hpp"
+#include "encoding/encode.hpp"
+
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
