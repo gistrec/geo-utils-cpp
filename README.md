@@ -113,8 +113,8 @@ Conan Center support is pending
 ### build2 / bpkg
 
 > **Package name note:** in the build2 ecosystem this library carries the
-> conventional `lib` prefix and is named **`libgeo-utils-cpp`** (cppget.org
-> submission pending) — i.e. the same `geo-utils-cpp` with `lib` in front.
+> conventional `lib` prefix and is named **`libgeo-utils-cpp`** — i.e. the same
+> `geo-utils-cpp` with `lib` in front.
 > Everywhere else (GitHub, CMake, vcpkg, Conan, xrepo) it stays
 > **`geo-utils-cpp`**. Same library, same headers, same `#include <geo/...>` API.
 
@@ -132,12 +132,13 @@ import libs = libgeo-utils-cpp%lib{geo-utils-cpp}
 exe{hello}: cxx{hello} $libs
 ```
 
-Until it is available on cppget.org, point your project at this Git repository
-so the dependency above resolves — add it to your `repositories.manifest`:
+The package is published on [cppget.org](https://cppget.org/libgeo-utils-cpp)
+in the `testing` section. Add that repository so the dependency above resolves —
+put it in your project's `repositories.manifest`:
 
 ```
 role: prerequisite
-location: https://github.com/gistrec/geo-utils-cpp.git#master
+location: https://pkg.cppget.org/1/testing
 ```
 
 ### Manual
