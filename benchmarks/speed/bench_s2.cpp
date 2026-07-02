@@ -104,3 +104,37 @@ static void BM_S2_PathLength(benchmark::State& state) {
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
 BENCHMARK(BM_S2_PathLength)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
+
+// --- closest point on path: S2Polyline::Project ---------------------------
+//
+// Same algorithmic class as geo::closest_point_on_path — a linear scan over
+// the segments, no spatial index (that would be S2ClosestEdgeQuery over an
+// S2ShapeIndex, a different tool).
+
+static void BM_S2_ClosestPointOnPath(benchmark::State& state) {
+    const auto route_ll = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
+    const S2Polyline line(to_s2_points(route_ll));
+    const auto queries = to_s2_points(geo::bench::bench_queries());
+    int next_vertex = 0;
+    for (auto _ : state) {
+        for (const auto& q : queries) {
+            benchmark::DoNotOptimize(line.Project(q, &next_vertex));
+        }
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
+}
+BENCHMARK(BM_S2_ClosestPointOnPath)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
+
+// --- point at distance: S2Polyline::Interpolate ----------------------------
+
+static void BM_S2_PointAtDistance(benchmark::State& state) {
+    const auto route_ll = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
+    const S2Polyline line(to_s2_points(route_ll));
+    for (auto _ : state) {
+        for (int i = 0; i < 100; ++i) {
+            benchmark::DoNotOptimize(line.Interpolate(i / 100.0));
+        }
+    }
+    state.SetItemsProcessed(state.iterations() * 100);
+}
+BENCHMARK(BM_S2_PointAtDistance)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);

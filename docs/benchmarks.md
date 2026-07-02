@@ -10,10 +10,11 @@ For build and run instructions see [`benchmarks/README.md`](../benchmarks/README
 ## TL;DR
 
 - **Speed.** Matches Boost.Geometry's spherical strategy and hand-written
-  haversine on `distance` / `heading`; wins on `area`; loses `contains`
-  and `path_length` to S2, which pays a hidden `lat/lng → S2Point`
-  conversion in real workloads. ~30× faster than GeographicLib's WGS84
-  geodesic — but on a sphere, less accurate.
+  haversine on `distance` / `heading`; wins on `area` and
+  `point_at_distance`; loses `contains`, `path_length`, and snap-to-route
+  to S2, which pays a hidden `lat/lng → S2Point` conversion in real
+  workloads. ~30× faster than GeographicLib's WGS84 geodesic — but on a
+  sphere, less accurate.
 - **Deployment footprint.** Header-only, zero deps — nothing to add to
   your build's dependency tree, and no `.so`/`.dylib` to ship alongside
   the binary.
@@ -167,6 +168,54 @@ S2 wins on `path_length` algorithmically (~2×) — once the input is
 Boost.Geometry within noise. GeographicLib pays the ellipsoidal cost.
 Note: a lat/lng-input workload would push the S2 column down by the
 per-call conversion cost, which is not counted here.
+
+### `closest_point_on_path` (snap to route, M queries/s)
+
+1 000 query points per iteration; route of N vertices. The comparable is
+`S2Polyline::Project` — the same algorithmic class (a linear scan over the
+segments, no spatial index; the indexed tool would be `S2ClosestEdgeQuery`,
+a different trade-off).
+
+| Library                     |  N=10    | N=100     | N=1 000   |
+| --------------------------- | -------: | --------: | --------: |
+| **geo-utils-cpp**           |     1.53 |     0.189 |     0.021 |
+| S2 (`S2Polyline::Project`)  | **4.41** | **0.708** | **0.076** |
+
+Both sides walk every segment; S2's polyline is pre-built as unit vectors
+while our lat/lng-native API converts each vertex per call — that
+conversion is essentially the whole ~3× gap, the same asymmetry noted for
+`path_length` above. For a lat/lng-input workload the columns converge.
+
+### `point_at_distance` (M queries/s)
+
+100 distances spread along a route of N vertices, per iteration. The
+comparable is `S2Polyline::Interpolate`.
+
+| Library                        |  N=10    | N=100    | N=1 000   |
+| ------------------------------ | -------: | -------: | --------: |
+| **geo-utils-cpp**              | **4.21** | **0.79** | **0.096** |
+| S2 (`S2Polyline::Interpolate`) |     3.88 |     0.50 |     0.051 |
+
+We win ~1.6–1.9× at larger N despite the per-vertex lat/lng conversion:
+`point_at_distance` walks segments until the target distance and stops,
+while `S2Polyline::Interpolate` normalizes by the full polyline length on
+every call.
+
+### `simplify`: planar vs geodesic metric (M input vertices/s)
+
+geo-utils-cpp only — the cost of the `geodesic = true` mode added for
+antimeridian/high-latitude correctness, on a worst-case random input
+(tolerance 1 km, nearly every vertex kept).
+
+| Metric                  | N=100    | N=1 000  |
+| ----------------------- | -------: | -------: |
+| planar (default)        |     3.00 |     1.74 |
+| `geodesic = true`       |     2.31 |     0.68 |
+
+The geodesic metric costs ~1.3× at N=100 and ~2.6× at N=1 000 — the
+3D-projection distance is doing real extra work per vertex. Reach for it
+when the polyline can cross the antimeridian or sits at high latitudes;
+the default stays bit-compatible with upstream PolyUtil.
 
 ## Deployment footprint
 

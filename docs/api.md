@@ -552,10 +552,10 @@ Returns: `std::vector<LatLng>` — the simplified path; empty only for an empty 
 > **Note.** With the default `geodesic = false` the `distance_to_segment`
 > approximation limits apply — in particular, polylines crossing the
 > antimeridian are mis-measured and barely simplify. Pass `geodesic = true`
-> for exact behavior at any latitude and across the antimeridian, at roughly
-> twice the cost per vertex; vertices near the tolerance threshold may
-> resolve differently between the two modes. Worst-case complexity is O(n²)
-> in the number of input points.
+> for exact behavior at any latitude and across the antimeridian, at two to
+> three times the cost per vertex (see [benchmarks.md](benchmarks.md));
+> vertices near the tolerance threshold may resolve differently between the
+> two modes. Worst-case complexity is O(n²) in the number of input points.
 
 ```cpp
 std::vector<geo::LatLng> route = {

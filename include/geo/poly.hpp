@@ -486,8 +486,8 @@ template <typename Path>
  * particular for segments crossing the antimeridian. Pass geodesic = true
  * to measure against true great-circle segments via
  * closest_point_on_segment: exact at any latitude and across the
- * antimeridian, at roughly twice the cost per vertex. Results of the two
- * modes can differ for vertices near the tolerance threshold.
+ * antimeridian, at two to three times the cost per vertex. Results of the
+ * two modes can differ for vertices near the tolerance threshold.
  * Worst-case complexity is O(n^2).
  */
 template <typename Path>
