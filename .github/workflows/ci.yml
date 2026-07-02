@@ -6,9 +6,10 @@
 #   - macOS  (AppleClang)
 #   - Windows (MSVC)
 #
-# Two extra Ubuntu/clang jobs:
-#   - sanitizers: the same test suite under ASan + UBSan
-#   - fuzz-smoke: a short libFuzzer run over geo::decode
+# Extra Ubuntu jobs:
+#   - sanitizers: the same test suite under ASan + UBSan (clang)
+#   - single-header: generate the amalgamation and build the example with it
+#   - fuzz-smoke: a short libFuzzer run over geo::decode (clang)
 #
 # Triggered automatically on push/PR to master/main; can also be run manually
 # from the Actions tab in GitHub UI.
@@ -117,6 +118,24 @@ jobs:
         run: ctest --test-dir build-san --output-on-failure
         env:
           UBSAN_OPTIONS: print_stacktrace=1
+
+  # The single-header amalgamation must stay generatable and usable — the
+  # release workflow (release-assets.yml) attaches it to every release, and
+  # a failure there would surface only after the release is public.
+  single-header:
+    name: single-header-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Generate and smoke-test
+        run: |
+          python3 tools/amalgamate.py -o geo.hpp
+          mkdir -p smoke/geo
+          cp geo.hpp smoke/geo/geo.hpp
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -Ismoke \
+              examples/gps_track.cpp -o smoke/gps_track
+          ./smoke/gps_track
 
   # Short libFuzzer run over geo::decode (the only parser of untrusted
   # input): memory safety under ASan/UBSan plus the encode/decode

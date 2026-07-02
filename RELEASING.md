@@ -119,6 +119,10 @@ maintainer-gated process.
 
 ## 5. Afterwards
 
+- [ ] The `Release assets` workflow attaches the single-header `geo.hpp` to
+      the release automatically — verify the asset appears on the release
+      page (regenerate manually with `tools/amalgamate.py` + `gh release
+      upload` if it didn't).
 - [ ] Verify the release page, the four registry submissions, and that the
       README badges still resolve.
 - [ ] When registry PRs merge, spot-check one install path
