@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "bounds.hpp"
 #include "encoding.hpp"
 #include "latlng.hpp"
 #include "poly.hpp"

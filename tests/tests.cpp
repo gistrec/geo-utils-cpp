@@ -1,4 +1,6 @@
 /** Including all tests */
+#include "bounds/bounds.hpp"
+
 #include "latlng/is_valid.hpp"
 #include "latlng/normalized.hpp"
 #include "latlng/operator_equal.hpp"

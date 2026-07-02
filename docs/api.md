@@ -30,9 +30,9 @@ are internal and not part of the supported API.
   containers and can throw `std::bad_alloc` on allocation failure.
 - **Include strategy.** Each subsystem has its own header:
   `<geo/latlng.hpp>` (types), `<geo/spherical.hpp>` (distance, heading,
-  area), `<geo/poly.hpp>` (point-in-polygon, on-path), `<geo/encoding.hpp>`
-  (encoded polylines). The umbrella `<geo/geo.hpp>` pulls all four in for
-  convenience.
+  area), `<geo/poly.hpp>` (point-in-polygon, on-path), `<geo/bounds.hpp>`
+  (bounding boxes), `<geo/encoding.hpp>` (encoded polylines). The umbrella
+  `<geo/geo.hpp>` pulls them all in for convenience.
 
 ## LatLng
 
@@ -114,7 +114,8 @@ A series of connected coordinates in an ordered sequence.
 
 `Path` is a template parameter accepted by `path_length`, `point_at_distance`,
 `area`, `signed_area`, `contains`, `on_edge`, `on_path`,
-`closest_point_on_path`, `is_closed_polygon`, `simplify`, and `encode`.
+`closest_point_on_path`, `is_closed_polygon`, `simplify`, `bounds`, and
+`encode`.
 It must be a random-access container of `geo::LatLng` — specifically, it must
 support:
 
@@ -565,6 +566,64 @@ std::vector<geo::LatLng> route = {
 auto simplified = geo::simplify(route, /*tolerance=*/88.0);
 std::cout << simplified.size(); // 4 — two vertices within 88 m are dropped
 ```
+
+---
+
+## Bounds
+
+A latitude/longitude aligned rectangle — viewport math and a cheap prefilter
+for the polygon functions.
+
+```cpp
+#include <geo/bounds.hpp>
+```
+
+### LatLngBounds
+
+**`geo::LatLngBounds{southwest, northeast}`** — a rectangle delimited by its south-west and north-east corners, in degrees.
+
+The longitude span runs **eastward** from `southwest.lng` to `northeast.lng`,
+so bounds may cross the antimeridian: `southwest.lng > northeast.lng`
+describes exactly that (sw lng `170`, ne lng `-170` covers `[170, 180] ∪
+[-180, -170]`). Equal longitudes describe a single meridian, not the whole
+circle. `southwest.lat <= northeast.lat` is expected; as everywhere in the
+library nothing is validated — use `is_valid()`.
+
+| Member | Meaning |
+|---|---|
+| `contains(point)` | whether the point is inside (boundaries inclusive; longitudes modulo 360, so `180` and `-180` are interchangeable) |
+| `extend(point)` | grow by the smallest amount that contains the point (Android builder semantics; east/west ties go east) |
+| `center()` | center of the bounds; the longitude midpoint follows the eastward span and is wrapped to `[-180, 180)` |
+| `intersects(other)` | whether the two bounds share at least one point (touching edges count) |
+| `lng_span()` | eastward longitude span in degrees, `[0, 360)` |
+| `is_valid()` | corners valid and latitudes ordered |
+| `operator==` | corner-wise approximate equality (`LatLng::operator==` semantics) |
+
+```cpp
+geo::LatLngBounds pacific{{-10, 170}, {10, -170}};  // crosses the antimeridian
+
+pacific.contains({0, 180});   // true
+pacific.contains({0, 0});     // false
+pacific.center();             // {0, 180}
+```
+
+---
+
+### bounds
+
+**`geo::bounds(const Path& path)`** — Returns the bounds of the path, built by extending point-by-point in input order (`extend` semantics). Returns `std::nullopt` for an empty path.
+
+A point outside `bounds(polygon)` is guaranteed to be outside the polygon,
+which makes the bounds a cheap prefilter in front of `contains` / `on_path`:
+
+```cpp
+std::vector<geo::LatLng> polygon = /* ... */;
+auto box = geo::bounds(polygon);
+
+bool inside = box->contains(p) && geo::contains(p, polygon);
+```
+
+Returns: `std::optional<LatLngBounds>`.
 
 ---
 

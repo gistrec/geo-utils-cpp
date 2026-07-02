@@ -55,7 +55,8 @@ Earth approximation model.
   to build or link.
 - **Spherical math** — distance, heading, offset, interpolation, area.
 - **Polygon utilities** — point-in-polygon, path proximity, snap-to-route
-  (`closest_point_on_path`), and Douglas–Peucker simplification.
+  (`closest_point_on_path`), Douglas–Peucker simplification, and
+  `LatLngBounds` viewport math.
 - **Polyline encoding** — `encode`/`decode` for the Google Encoded Polyline
   format.
 - **Fast** — matches hand-written haversine on `distance`; especially strong
