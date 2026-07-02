@@ -36,16 +36,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Strict warnings on the GCC/Clang jobs: the headers and tests
+          # must stay clean at -Wall -Wextra -Wpedantic, and -Werror keeps
+          # it that way. MSVC is left at its default warning level.
           - name: ubuntu-gcc
             os: ubuntu-latest
             cc: gcc
             cxx: g++
+            cxxflags: -Wall -Wextra -Wpedantic -Werror
           - name: ubuntu-clang
             os: ubuntu-latest
             cc: clang
             cxx: clang++
+            cxxflags: -Wall -Wextra -Wpedantic -Werror
           - name: macos
             os: macos-latest
+            cxxflags: -Wall -Wextra -Wpedantic -Werror
           - name: windows
             os: windows-latest
 
@@ -77,7 +83,7 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.name }}-${{ github.event.repository.name }}-img${{ steps.image.outputs.version }}-googletest-1.14.0
 
       - name: Configure
-        run: cmake -S . -B build-cmake -DGEO_UTILS_CPP_BUILD_TESTS=ON -DGEO_UTILS_CPP_BUILD_EXAMPLES=ON
+        run: cmake -S . -B build-cmake -DGEO_UTILS_CPP_BUILD_TESTS=ON -DGEO_UTILS_CPP_BUILD_EXAMPLES=ON "-DCMAKE_CXX_FLAGS=${{ matrix.cxxflags }}"
 
       - name: Build
         run: cmake --build build-cmake --config Release
@@ -101,7 +107,7 @@ jobs:
           cmake -S . -B build-san
           -DGEO_UTILS_CPP_BUILD_TESTS=ON -DGEO_UTILS_CPP_BUILD_EXAMPLES=ON
           -DCMAKE_BUILD_TYPE=Debug
-          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all -g"
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all -g -Wall -Wextra -Wpedantic -Werror"
           -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
 
       - name: Build
