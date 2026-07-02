@@ -6,6 +6,10 @@
 #   - macOS  (AppleClang)
 #   - Windows (MSVC)
 #
+# Two extra Ubuntu/clang jobs:
+#   - sanitizers: the same test suite under ASan + UBSan
+#   - fuzz-smoke: a short libFuzzer run over geo::decode
+#
 # Triggered automatically on push/PR to master/main; can also be run manually
 # from the Actions tab in GitHub UI.
 
@@ -80,3 +84,54 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build-cmake -C Release --output-on-failure
+
+  # The full test suite under AddressSanitizer + UndefinedBehaviorSanitizer.
+  # -fno-sanitize-recover=all turns any UB report into a test failure.
+  sanitizers:
+    name: ubuntu-clang-asan-ubsan
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure
+        run: >
+          cmake -S . -B build-san
+          -DGEO_UTILS_CPP_BUILD_TESTS=ON -DGEO_UTILS_CPP_BUILD_EXAMPLES=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all -g"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+
+      - name: Build
+        run: cmake --build build-san -j
+
+      - name: Test
+        run: ctest --test-dir build-san --output-on-failure
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1
+
+  # Short libFuzzer run over geo::decode (the only parser of untrusted
+  # input): memory safety under ASan/UBSan plus the encode/decode
+  # round-trip property. A smoke check, not a soak — 60 seconds.
+  fuzz-smoke:
+    name: fuzz-decode-smoke
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure
+        run: >
+          cmake -S . -B build-fuzz
+          -DGEO_UTILS_CPP_BUILD_TESTS=OFF -DGEO_UTILS_CPP_BUILD_EXAMPLES=OFF
+          -DGEO_UTILS_CPP_BUILD_FUZZERS=ON
+
+      - name: Build
+        run: cmake --build build-fuzz -j
+
+      - name: Fuzz
+        run: ./build-fuzz/tests/fuzz/geo_utils_cpp_fuzz_decode -max_total_time=60 -print_final_stats=1

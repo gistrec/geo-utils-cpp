@@ -11,6 +11,7 @@ include(CMakeDependentOption)
 option(GEO_UTILS_CPP_BUILD_TESTS      "Build geo-utils-cpp tests"      ${_geo_utils_cpp_is_top_level})
 option(GEO_UTILS_CPP_BUILD_EXAMPLES   "Build geo-utils-cpp examples"   ${_geo_utils_cpp_is_top_level})
 option(GEO_UTILS_CPP_BUILD_BENCHMARKS "Build geo-utils-cpp benchmarks" OFF)
+option(GEO_UTILS_CPP_BUILD_FUZZERS    "Build geo-utils-cpp libFuzzer targets (Clang only)" OFF)
 cmake_dependent_option(GEO_UTILS_CPP_ENABLE_COVERAGE
     "Enable gcov coverage instrumentation (GCC/Clang only)" OFF
     "GEO_UTILS_CPP_BUILD_TESTS" OFF)
@@ -92,6 +93,11 @@ if(GEO_UTILS_CPP_BUILD_TESTS)
         target_compile_options(geo_utils_cpp_tests PRIVATE --coverage)
         target_link_options(geo_utils_cpp_tests PRIVATE --coverage)
     endif()
+endif()
+
+# Fuzzers (opt-in: libFuzzer smoke tests, Clang only)
+if(GEO_UTILS_CPP_BUILD_FUZZERS)
+    add_subdirectory(tests/fuzz)
 endif()
 
 # Examples
