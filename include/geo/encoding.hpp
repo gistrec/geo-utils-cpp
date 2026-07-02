@@ -102,7 +102,12 @@ template <typename Path>
         const auto r = static_cast<std::int32_t>(result);
         // r >> 1 on a negative value is an arithmetic shift on every
         // supported compiler; C++20 makes that guarantee standard.
-        coord += (r & 1) != 0 ? ~(r >> 1) : (r >> 1);
+        const std::int32_t delta = (r & 1) != 0 ? ~(r >> 1) : (r >> 1);
+        // Accumulate with unsigned wrap-around: malformed input can push the
+        // sum past INT32_MAX, which would be signed-overflow UB. Wrapping
+        // matches the Java original's int semantics.
+        coord = static_cast<std::int32_t>(
+            static_cast<std::uint32_t>(coord) + static_cast<std::uint32_t>(delta));
         return true;
     };
 

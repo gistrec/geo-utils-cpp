@@ -31,6 +31,20 @@ TEST(Encoding, decode) {
     EXPECT_TRUE(cut_after_lat[0].approx_equal(LatLng(38.5, -120.2), 1e-9));
 }
 
+TEST(Encoding, decode_adversarial_overflow) {
+    // Malformed input with three consecutive lat deltas of +2^30-1: the raw
+    // sum exceeds INT32_MAX. Decoding must stay well-defined (unsigned
+    // wrap-around, matching the Java original) — under UBSan this test used
+    // to abort with signed-overflow UB. Coordinates are unspecified for
+    // malformed input; only the point count and termination are guaranteed.
+    std::string adversarial;
+    for (int i = 0; i < 3; ++i) {
+        geo::detail::encode_value(0x3FFFFFFF, adversarial);  // lat delta
+        geo::detail::encode_value(0, adversarial);           // lng delta
+    }
+    EXPECT_EQ(decode(adversarial).size(), 3U);
+}
+
 TEST(Encoding, encode_decode_roundtrip) {
     std::vector<LatLng> path = {
         {0, 0}, {90, 180}, {-90, -180}, {1.00001, -1.00001},
