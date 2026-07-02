@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(GeoUtilsCpp VERSION 1.1.0 LANGUAGES CXX)
+project(GeoUtilsCpp VERSION 1.2.0 LANGUAGES CXX)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(_geo_utils_cpp_is_top_level ON)

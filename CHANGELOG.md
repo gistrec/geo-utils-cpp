@@ -1,5 +1,84 @@
 # Changelog
 
+## v1.2.0
+
+Route tooling (snap-to-route, `point_at_distance`), `LatLngBounds`,
+polyline6 encoding, a geodesic `simplify` mode, and a `decode()` hardening
+fix found by the new fuzzing setup. The public API is extended; existing
+code keeps compiling unchanged.
+
+### Added
+
+- `geo::closest_point_on_segment` / `geo::closest_point_on_path` (with the
+  `PathProjection` result struct) — the geodesically correct counterpart of
+  `distance_to_segment`: snap a point to a route and get the closest point,
+  the segment index, and the distance. Exact at any latitude and across the
+  antimeridian; endpoint/vertex results keep the original coordinates
+  bit-exactly.
+- `geo::point_at_distance` — the point N meters along a path from its first
+  vertex; uses the same length formula as `path_length`, clamps to the path.
+- `geo::LatLngBounds` and `geo::bounds(path)` (new `<geo/bounds.hpp>`) — a
+  lat/lng rectangle with an eastward longitude span, so antimeridian-crossing
+  bounds are first-class: `contains`, `extend`, `center`, `intersects`,
+  `lng_span`, `is_valid`. `bounds(path)` folds a path into its bounds — a
+  cheap prefilter in front of `contains()` / `on_path()`.
+- `encode` / `decode` precision parameter (default 5, byte-identical to the
+  previous behavior). Pass 6 for the polyline6 grid used by OSRM, Valhalla,
+  and Mapbox — the highest precision whose coordinates and point-to-point
+  deltas always fit the decoder's 32-bit arithmetic.
+- `simplify(poly, tolerance, geodesic = false)` — the new `geodesic = true`
+  mode measures vertices against true great-circle segments via
+  `closest_point_on_segment` (exact across the antimeridian and at high
+  latitudes); the default remains bit-compatible with upstream PolyUtil.
+- `LatLng::normalized()` — latitude clamped to [-90, 90], longitude wrapped
+  to [-180, 180) (Android Maps SDK conventions); in-range values pass
+  through bit-exactly, NaN propagates instead of becoming a fake coordinate.
+- `<geo/version.hpp>` — `GEO_UTILS_CPP_VERSION_MAJOR` / `_MINOR` / `_PATCH`,
+  a single comparable `GEO_UTILS_CPP_VERSION` usable in `#if`, and
+  `GEO_UTILS_CPP_VERSION_STRING`; the test suite pins them to the CMake
+  project version.
+- `examples/gps_track.cpp` — an end-to-end pipeline on a real 95-point
+  track: decode → bounds → geodesic simplify → snap a GPS fix →
+  `point_at_distance` → re-encode as polyline6.
+
+### Fixed
+
+- `decode()`: signed-integer-overflow UB on malformed input — a 24-byte
+  adversarial string could push the int32 delta accumulator past INT32_MAX.
+  Accumulation now wraps in unsigned arithmetic, matching the Java
+  original's int semantics bit for bit; well-formed input decodes
+  identically. Found by the new libFuzzer harness before it even landed.
+- `decode()` divides by the grid factor instead of multiplying by its
+  reciprocal — exact on every precision grid (≤ 1 ulp change at the
+  default precision).
+
+### Docs
+
+- `docs/api.md` covers the whole new surface; `docs/benchmarks.md` gains
+  tables for the route ops (including `point_at_distance` beating
+  `S2Polyline::Interpolate` by 1.6–1.9×, and the measured 1.3–2.6× cost of
+  geodesic `simplify`).
+- `docs/getting-started.md`: fixed a stale "0.1 nanometers" tolerance claim
+  (it is ≈ 0.1 micrometers) and a dangling link to a nonexistent `conan/`
+  directory; the build-options table now lists the benchmark and fuzzer
+  toggles.
+- `RELEASING.md` — the full release checklist, registry procedures
+  included.
+
+### CI & tests
+
+- New ASan/UBSan job (any sanitizer report fails the build) and a
+  60-second libFuzzer smoke test over `geo::decode`
+  (`GEO_UTILS_CPP_BUILD_FUZZERS`, Clang only).
+- `-Wall -Wextra -Wpedantic -Werror` enforced on the GCC/Clang jobs.
+
+### Unchanged (downstream-compatible)
+
+- Everything shipped in v1.1.x: existing functions, namespaces, headers,
+  and the CMake `geo::utils` target keep working without source changes.
+  `distance_to_segment` and default-mode `simplify` results are
+  bit-identical to v1.1.0.
+
 ## v1.1.0
 
 New polyline utilities (encoding, simplification), a `LatLng` validity check,
