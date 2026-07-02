@@ -23,7 +23,7 @@ are internal and not part of the supported API.
   an out-of-range `LatLng` gives unspecified (but memory-safe) results;
   see [LatLng § Validation](#validation). Container-taking functions
   (`area`, `path_length`, `point_at_distance`, `contains`, `on_edge`,
-  `on_path`, `closest_point_on_path`) are not
+  `on_path`, `closest_point_on_path`, `bounds`) are not
   marked `noexcept` because the generic `Path` contract doesn't
   constrain `operator[]` / `size()` to be `noexcept`; they don't throw
   themselves. `encode`, `decode`, and `simplify` return owning
@@ -31,8 +31,9 @@ are internal and not part of the supported API.
 - **Include strategy.** Each subsystem has its own header:
   `<geo/latlng.hpp>` (types), `<geo/spherical.hpp>` (distance, heading,
   area), `<geo/poly.hpp>` (point-in-polygon, on-path), `<geo/bounds.hpp>`
-  (bounding boxes), `<geo/encoding.hpp>` (encoded polylines). The umbrella
-  `<geo/geo.hpp>` pulls them all in for convenience.
+  (bounding boxes), `<geo/encoding.hpp>` (encoded polylines), plus
+  `<geo/version.hpp>` (version macros). The umbrella `<geo/geo.hpp>` pulls
+  them all in for convenience.
 
 ## LatLng
 
@@ -369,7 +370,9 @@ Utilities for computations involving polygons and polylines.
 > **Note on `geodesic` defaults.** `contains` defaults to rhumb-line
 > edges (cheaper, fine for polygons well inside one hemisphere);
 > `on_edge` and `on_path` default to great-circle edges (more accurate,
-> especially near the poles). Pass `geodesic` explicitly when in doubt.
+> especially near the poles); `simplify` defaults to the planar
+> `distance_to_segment` metric (upstream parity — see its entry). Pass
+> `geodesic` explicitly when in doubt.
 
 ### contains
 

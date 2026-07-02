@@ -58,7 +58,7 @@ Earth approximation model.
   (`closest_point_on_path`), Douglas–Peucker simplification, and
   `LatLngBounds` viewport math.
 - **Polyline encoding** — `encode`/`decode` for the Google Encoded Polyline
-  format.
+  format, including the polyline6 grid used by OSRM/Valhalla/Mapbox.
 - **Fast** — matches hand-written haversine on `distance`; especially strong
   on polygon `area` (see [benchmarks](docs/benchmarks.md)).
 - **Focused scope** — intentionally small API for GPS, navigation, tracking,
