@@ -22,8 +22,8 @@ are internal and not part of the supported API.
   and pathological inputs may yield NaN. Coordinates are never validated —
   an out-of-range `LatLng` gives unspecified (but memory-safe) results;
   see [LatLng § Validation](#validation). Container-taking functions
-  (`area`, `path_length`, `contains`, `on_edge`, `on_path`,
-  `closest_point_on_path`) are not
+  (`area`, `path_length`, `point_at_distance`, `contains`, `on_edge`,
+  `on_path`, `closest_point_on_path`) are not
   marked `noexcept` because the generic `Path` contract doesn't
   constrain `operator[]` / `size()` to be `noexcept`; they don't throw
   themselves. `encode`, `decode`, and `simplify` return owning
@@ -112,9 +112,9 @@ a.approx_equal(b, 1e-5);   // true (1e-5° ≈ 1 m on equator)
 
 A series of connected coordinates in an ordered sequence.
 
-`Path` is a template parameter accepted by `path_length`, `area`, `signed_area`,
-`contains`, `on_edge`, `on_path`, `closest_point_on_path`, `is_closed_polygon`,
-`simplify`, and `encode`.
+`Path` is a template parameter accepted by `path_length`, `point_at_distance`,
+`area`, `signed_area`, `contains`, `on_edge`, `on_path`,
+`closest_point_on_path`, `is_closed_polygon`, `simplify`, and `encode`.
 It must be a random-access container of `geo::LatLng` — specifically, it must
 support:
 
@@ -295,6 +295,26 @@ Returns: `double` — total length in meters; `0` for a path with fewer than 2 p
 ```cpp
 std::vector<geo::LatLng> path = { {0, 0}, {90, 0}, {0, 90} };
 std::cout << geo::path_length(path); // ~20,015 km (π·R, half Earth's circumference)
+```
+
+---
+
+### point_at_distance
+
+**`geo::point_at_distance(const Path& path, double distance)`** — Returns the point that lies `distance` meters along the path from its first vertex — "where is the vehicle after N meters of route". The natural companion of `path_length` and the snap-to-route functions.
+
+- `distance` — meters along the path, measured with the same formula as
+  `path_length`. Clamped to the path: values `<= 0` return the first vertex
+  and values `>= path_length(path)` return the last one, both with their
+  coordinates exactly as given.
+
+Returns: `std::optional<LatLng>` — the point, or `std::nullopt` for an empty path.
+
+```cpp
+std::vector<geo::LatLng> route = { {0, 0}, {0, 10}, {10, 10} };
+
+auto midpoint = geo::point_at_distance(route, geo::path_length(route) / 2);
+auto in_100km = geo::point_at_distance(route, 100'000.0); // {0, ~0.9}
 ```
 
 ---

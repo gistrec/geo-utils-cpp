@@ -13,6 +13,7 @@
 #include "spherical/offset.hpp"
 #include "spherical/offset_origin.hpp"
 #include "spherical/path_length.hpp"
+#include "spherical/point_at_distance.hpp"
 #include "spherical/signed_area.hpp"
 
 #include "poly/closest_point_on_path.hpp"
