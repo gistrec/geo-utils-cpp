@@ -1,0 +1,7 @@
+: 1
+name: libgeo-utils-cpp
+version: 1.1.0
+language: c++
+project: geo-utils-cpp
+summary: Header-only C++17 geographic geometry utilities
+license: Apache-2.0
