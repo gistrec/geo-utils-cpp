@@ -97,6 +97,32 @@ TEST(Poly, simplify_triangle) {
     expect_simplified(triangle, simplified_closed);
 }
 
+TEST(Poly, simplify_geodesic) {
+    // Antimeridian-crossing polyline: the middle vertex sits ~11 m off the
+    // segment. The default planar metric sees raw longitudes spanning almost
+    // the whole globe, measures kilometers, and keeps the vertex; the
+    // geodesic metric measures the true 11 m and drops it.
+    std::vector<LatLng> am = { {0, 179}, {0.0001, -179.95}, {0, -179.9} };
+    EXPECT_EQ(simplify(am, 50.0, /*geodesic=*/false).size(), 3U);
+    EXPECT_EQ(simplify(am, 50.0, /*geodesic=*/true).size(), 2U);
+
+    // Away from the antimeridian at low latitudes the two metrics agree:
+    // the upstream 95-point line simplifies to the same sizes.
+    static const char kLine[] =
+        "elfjD~a}uNOnFN~Em@fJv@tEMhGDjDe@hG^nF??@lA?n@IvAC`Ay@A{@DwCA{CF_EC{CEi@PBTFDJBJ?V?n@?D@?A@?@?F?F?"
+        "LAf@?n@@`@@T@~@FpA?fA?p@?r@?vAH`@OR@^ETFJCLD?JA^?J?P?fAC`B@d@?b@A\\@`@Ad@@\\?`@?f@?V?H?DD@DDBBDBD?"
+        "D?B?B@B@@@B@B@B@D?D?JAF@H@FCLADBDBDCFAN?b@Af@@x@@";
+    const std::vector<LatLng> line = decode(kLine);
+    const std::pair<double, std::size_t> expected[] = {
+        {5, 20}, {10, 14}, {50, 6}, {1000, 2},
+    };
+    for (const auto& [tolerance, size] : expected) {
+        auto simplified = simplify(line, tolerance, /*geodesic=*/true);
+        EXPECT_EQ(simplified.size(), size) << "tolerance = " << tolerance;
+        expect_simplified(line, simplified);
+    }
+}
+
 TEST(Poly, simplify_oval) {
     // Oval polygon from the upstream test suite.
     static const char kOval[] =

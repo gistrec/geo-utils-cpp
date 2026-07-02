@@ -517,18 +517,24 @@ std::cout << geo::is_closed_polygon(poly); // true
 
 ### simplify
 
-**`geo::simplify(const Path& poly, double tolerance)`** — Simplifies the given polyline or polygon using the [Douglas–Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) decimation algorithm: keeps the vertices that lie farther than `tolerance` meters from the simplified shape, drops the rest. The first and last points are always kept, every returned point is one of the input points (in input order), and the input is not modified.
+**`geo::simplify(const Path& poly, double tolerance, bool geodesic = false)`** — Simplifies the given polyline or polygon using the [Douglas–Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) decimation algorithm: keeps the vertices that lie farther than `tolerance` meters from the simplified shape, drops the rest. The first and last points are always kept, every returned point is one of the input points (in input order), and the input is not modified.
 
 A closed polygon (in the `is_closed_polygon` sense) is simplified including its closing segment, so the result is a closed polygon too.
 
 - `tolerance` — maximum distance in meters a dropped vertex may lie from the simplified path; larger values drop more points.
+- `geodesic` — `false` (default) measures distances with `distance_to_segment`
+  (upstream PolyUtil behavior); `true` measures against true great-circle
+  segments via `closest_point_on_segment`.
 
 Returns: `std::vector<LatLng>` — the simplified path; empty only for an empty input.
 
-> **Note.** Distances are measured with `distance_to_segment`, so its
-> approximation limits apply — in particular for segments crossing the
-> antimeridian. Worst-case complexity is O(n²) in the number of input
-> points.
+> **Note.** With the default `geodesic = false` the `distance_to_segment`
+> approximation limits apply — in particular, polylines crossing the
+> antimeridian are mis-measured and barely simplify. Pass `geodesic = true`
+> for exact behavior at any latitude and across the antimeridian, at roughly
+> twice the cost per vertex; vertices near the tolerance threshold may
+> resolve differently between the two modes. Worst-case complexity is O(n²)
+> in the number of input points.
 
 ```cpp
 std::vector<geo::LatLng> route = {
