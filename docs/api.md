@@ -15,14 +15,15 @@ are internal and not part of the supported API.
 - **Thread safety.** All functions are pure (no global mutable state, no
   caching) and safe to call concurrently from multiple threads.
 - **Error handling.** Scalar functions (`heading`, `offset`,
-  `interpolate`, `distance_between`, `distance_to_segment`) are
-  `noexcept`. Out-of-domain inputs are not asserted: `interpolate` with
+  `interpolate`, `distance_between`, `distance_to_segment`,
+  `closest_point_on_segment`) are `noexcept`. Out-of-domain inputs are not asserted: `interpolate` with
   `fraction` outside `[0, 1]` extrapolates along the great circle,
   `offset_origin` returns `std::nullopt` when no origin can be computed,
   and pathological inputs may yield NaN. Coordinates are never validated —
   an out-of-range `LatLng` gives unspecified (but memory-safe) results;
   see [LatLng § Validation](#validation). Container-taking functions
-  (`area`, `path_length`, `contains`, `on_edge`, `on_path`) are not
+  (`area`, `path_length`, `contains`, `on_edge`, `on_path`,
+  `closest_point_on_path`) are not
   marked `noexcept` because the generic `Path` contract doesn't
   constrain `operator[]` / `size()` to be `noexcept`; they don't throw
   themselves. `encode`, `decode`, and `simplify` return owning
@@ -99,7 +100,8 @@ a.approx_equal(b, 1e-5);   // true (1e-5° ≈ 1 m on equator)
 A series of connected coordinates in an ordered sequence.
 
 `Path` is a template parameter accepted by `path_length`, `area`, `signed_area`,
-`contains`, `on_edge`, `on_path`, `is_closed_polygon`, `simplify`, and `encode`.
+`contains`, `on_edge`, `on_path`, `closest_point_on_path`, `is_closed_polygon`,
+`simplify`, and `encode`.
 It must be a random-access container of `geo::LatLng` — specifically, it must
 support:
 
@@ -402,7 +404,9 @@ Returns: `double` — distance in meters, always ≥ 0.
 > percent at high latitudes (around `lat 80°`); and longitudes are used as-is,
 > so segments crossing the antimeridian (`±180°`) yield meaningless results —
 > a point lying exactly on such a segment can report kilometers of distance.
-> For tolerance checks against true geodesic segments, use `on_path`.
+> For tolerance checks against true geodesic segments, use `on_path`; for the
+> geodesically correct closest point and distance, use
+> `closest_point_on_segment` / `closest_point_on_path`.
 
 ```cpp
 geo::LatLng start{28.05359, -82.41632};
@@ -411,6 +415,71 @@ geo::LatLng point{28.05342, -82.41594};
 
 // Point lies ~38 m east-northeast of the segment
 std::cout << geo::distance_to_segment(point, start, end);
+```
+
+---
+
+### closest_point_on_segment
+
+**`geo::closest_point_on_segment(const LatLng& p, const LatLng& start, const LatLng& end)`** — Returns the point of the great-circle segment `[start, end]` closest to `p`.
+
+The geodesically correct counterpart of `distance_to_segment`: the segment is
+the minor great-circle arc between its endpoints, computed via 3D vector
+projection with no planar approximation — accurate at any latitude and across
+the antimeridian. The distance from `p` to the segment is
+`distance_between(p, closest_point_on_segment(p, start, end))`.
+
+Conventions:
+
+- When the closest point is a segment endpoint, that endpoint is returned
+  with its coordinates exactly as given.
+- Equal (`operator==`) endpoints yield `start`.
+- Antipodal endpoints do not define a unique great circle; the nearer
+  endpoint is returned (the same ambiguity `contains` resolves for
+  180°-spanning edges).
+
+Returns: `LatLng` — the closest point of the segment.
+
+```cpp
+geo::LatLng a{0, 0};
+geo::LatLng b{0, 90};
+
+geo::closest_point_on_segment({20, 30}, a, b);  // {0, 30} — perpendicular foot
+geo::closest_point_on_segment({10, -20}, a, b); // {0, 0}  — beyond start, endpoint returned
+
+// Across the antimeridian (meaningless for distance_to_segment):
+geo::closest_point_on_segment({5, 180}, {0, 170}, {0, -170}); // {0, 180}
+```
+
+---
+
+### closest_point_on_path
+
+**`geo::closest_point_on_path(const LatLng& point, const Path& path)`** — Projects the point onto the closest of the path's great-circle segments — "snap to route". Returns `std::nullopt` for an empty path.
+
+The result is a `geo::PathProjection`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `point` | `LatLng` | the closest point of the path |
+| `segment` | `std::size_t` | index `i`: the point lies on the segment `path[i]` → `path[i + 1]` (`0` for a single-point path) |
+| `distance` | `double` | great-circle distance to `point` in meters; always equals `distance_between(point, result.point)` |
+
+Segments are minor great-circle arcs, as in `on_path(geodesic = true)`. If
+several segments are equally close — typically when the closest point is a
+shared vertex — the lowest segment index wins, and vertex coordinates are
+returned exactly as given. Complexity is O(n) in the number of vertices.
+
+Returns: `std::optional<PathProjection>` — the projection, or `std::nullopt` for an empty path.
+
+```cpp
+std::vector<geo::LatLng> route = { {0, 0}, {0, 10}, {10, 10} };
+geo::LatLng gps{8.0, 9.5};  // a GPS fix near the second leg
+
+auto snapped = geo::closest_point_on_path(gps, route);
+// snapped->segment  == 1
+// snapped->point    ≈ {8.0, 10}
+// snapped->distance ≈ 55 km
 ```
 
 ---
