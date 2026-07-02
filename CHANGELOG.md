@@ -1,5 +1,53 @@
 # Changelog
 
+## v1.1.0
+
+New polyline utilities (encoding, simplification), a `LatLng` validity check,
+and several correctness fixes around the antimeridian and the poles. The
+public API is extended; existing code keeps compiling unchanged.
+
+### Added
+
+- `geo::encode` / `geo::decode` — the Google Encoded Polyline Algorithm
+  Format, in the new `<geo/encoding.hpp>` header (also pulled in by the
+  umbrella `<geo/geo.hpp>`).
+- `geo::simplify` — Douglas–Peucker polyline/polygon simplification with a
+  tolerance in meters.
+- `geo::is_closed_polygon` — checks that a path is non-empty and its first
+  and last points are equal (antimeridian-aware).
+- `geo::LatLng::is_valid()` — `constexpr` check that latitude is in
+  [-90, 90] and longitude in [-180, 180], both finite. The constructor
+  still stores values exactly as given — no validation, clamping, or
+  wrapping; see the new "Validation" section in `docs/api.md`.
+
+### Fixed
+
+- `contains()`: polygon edges spanning exactly 180° of longitude no longer
+  flip the point-in-polygon parity arbitrarily (upstream PolyUtil
+  convention: such edges never intersect the test ray).
+- `offset_origin()`: no longer rejects solutions exactly on the `asin`
+  domain boundary (e.g. destinations at a pole).
+- `interpolate()`: the linear fallback for nearby points now wraps the
+  longitude difference, so points straddling the antimeridian interpolate
+  across it instead of the long way around the globe.
+- `offset()` / `offset_origin()`: the output longitude is normalized to
+  [-180, 180).
+
+### Docs
+
+- `LatLng`: coordinate units (degrees everywhere) and valid ranges are now
+  documented in the header itself; out-of-range behavior is specified as
+  memory-safe but unspecified.
+- `distance_to_segment`: documented the planar-projection approximation and
+  its limits (high latitudes, antimeridian-crossing segments).
+- `area`: the return-value description no longer claims a sign convention
+  (it returns `std::abs(signed_area(...))`).
+
+### Unchanged (downstream-compatible)
+
+- Everything shipped in v1.0.x: existing functions, namespaces, headers,
+  and the CMake `geo::utils` target keep working without source changes.
+
 ## v1.0.2
 
 Performance optimizations to the spherical math hot path, new benchmarks, and

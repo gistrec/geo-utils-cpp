@@ -51,7 +51,7 @@ Earth approximation model.
 
 - **Lat/lng-native API** — pass latitude/longitude coordinates directly, no
   framework-specific point types to convert through.
-- **Header-only, dependency-free** — about 44 KB across 5 headers; nothing
+- **Header-only, dependency-free** — about 34 KB across 6 headers; nothing
   to build or link.
 - **Spherical math** — distance, heading, offset, interpolation, area.
 - **Polygon utilities** — point-in-polygon, path proximity, and
@@ -73,7 +73,7 @@ include(FetchContent)
 FetchContent_Declare(
     GeoUtilsCpp
     GIT_REPOSITORY https://github.com/gistrec/geo-utils-cpp.git
-    GIT_TAG        v1.0.2
+    GIT_TAG        v1.1.0
 )
 FetchContent_MakeAvailable(GeoUtilsCpp)
 
@@ -104,7 +104,7 @@ target("your_target")
 ### Conan
 
 ```sh
-conan install --requires=geo-utils-cpp/1.0.2 --build=missing
+conan install --requires=geo-utils-cpp/1.1.0 --build=missing
 ```
 
 Conan Center support is pending
@@ -121,7 +121,7 @@ Conan Center support is pending
 Add the dependency to your package's `manifest`:
 
 ```
-depends: libgeo-utils-cpp ^1.0.2
+depends: libgeo-utils-cpp ^1.1.0
 ```
 
 And in the consuming `buildfile`:
@@ -151,7 +151,7 @@ With any of the above methods (vcpkg, xrepo, Conan, FetchContent, or a
 system `find_package`), wire it into your build with:
 
 ```cmake
-find_package(GeoUtilsCpp 1.0.2 REQUIRED)
+find_package(GeoUtilsCpp 1.1.0 REQUIRED)
 target_link_libraries(your_target PRIVATE geo::utils)
 ```
 
