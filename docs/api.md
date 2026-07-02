@@ -76,6 +76,19 @@ still compares unequal to `LatLng(0, 0)`, and rhumb-line functions may
 produce NaN from it. Validate or normalize coordinates at the boundary of
 your system instead of relying on any of this behavior.
 
+To normalize, use `normalized()`: it clamps the latitude to `[-90, 90]` and
+wraps the longitude to `[-180, 180)` — the same conventions as the Android
+Maps SDK constructor. In-range values pass through bit-exactly (longitude
+`180` becomes `-180`); NaN components propagate, so garbage stays invalid
+rather than turning into a fake coordinate.
+
+```cpp
+geo::LatLng{40.7, -74.0}.normalized();  // unchanged
+geo::LatLng{0, 185}.normalized();       // {0, -175}
+geo::LatLng{91, 540}.normalized();      // {90, -180}
+geo::LatLng{NAN, 0}.normalized();       // {NaN, 0} — still !is_valid()
+```
+
 ### Equality
 
 `operator==` performs an **approximate** comparison with tolerance
