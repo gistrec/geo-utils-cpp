@@ -30,12 +30,17 @@ git push origin master          # or merge the release PR
 
 - [ ] Wait for **all** workflows on the release commit to go green
       (`gh run list --commit <sha>`) — tag only a green commit.
-- [ ] Annotated tag + GitHub release:
+- [ ] Annotated tag + GitHub release. The repository uses **immutable
+      releases**: assets can only be attached before publishing, so create
+      the release as a **draft**, let the `Release assets` workflow attach
+      the single-header `geo.hpp` (~1 min), then publish:
 
 ```sh
 git tag -a vX.Y.Z -m "geo-utils-cpp vX.Y.Z — <one-line summary>"
 git push origin vX.Y.Z
-gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <notes.md>  # notes = CHANGELOG section
+gh release create vX.Y.Z --draft --title "vX.Y.Z" --notes-file <notes.md>  # notes = CHANGELOG section
+gh release view vX.Y.Z --json assets --jq '.assets[].name'  # wait for geo.hpp
+gh release edit vX.Y.Z --draft=false
 ```
 
 ## 3. Hashes of the source tarball
@@ -119,6 +124,9 @@ maintainer-gated process.
 
 ## 5. Afterwards
 
+- [ ] Double-check the published release shows the single-header `geo.hpp`
+      asset (it must be attached while the release is still a draft — see
+      step 2; immutable releases cannot gain assets after publishing).
 - [ ] Verify the release page, the four registry submissions, and that the
       README badges still resolve.
 - [ ] When registry PRs merge, spot-check one install path

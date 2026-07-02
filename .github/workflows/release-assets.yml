@@ -1,0 +1,43 @@
+# Attaches the single-header amalgamation (geo.hpp) to releases: generate
+# from the release tag, smoke-test it by building and running the end-to-end
+# example against it, then upload.
+#
+# Triggers on `created` (fires for drafts too): this repository uses
+# immutable releases, so assets can only be attached BEFORE publishing —
+# create the release as a draft, let this workflow attach the header, then
+# flip the draft to published (see RELEASING.md).
+
+name: Release assets
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  single-header:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Generate the single header
+        run: python3 tools/amalgamate.py -o geo.hpp
+
+      - name: Smoke-test the amalgamation
+        run: |
+          mkdir -p smoke/geo
+          cp geo.hpp smoke/geo/geo.hpp
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -Ismoke \
+              examples/gps_track.cpp -o smoke/gps_track
+          ./smoke/gps_track
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" geo.hpp --clobber
