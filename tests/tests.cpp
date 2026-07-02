@@ -14,6 +14,8 @@
 #include "spherical/path_length.hpp"
 #include "spherical/signed_area.hpp"
 
+#include "poly/closest_point_on_path.hpp"
+#include "poly/closest_point_on_segment.hpp"
 #include "poly/contains.hpp"
 #include "poly/distance_to_segment.hpp"
 #include "poly/is_closed_polygon.hpp"
