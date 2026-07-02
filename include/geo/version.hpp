@@ -8,7 +8,7 @@
 // consumers get it too; the test suite asserts it matches the CMake version.
 #define GEO_UTILS_CPP_VERSION_MAJOR 1
 #define GEO_UTILS_CPP_VERSION_MINOR 2
-#define GEO_UTILS_CPP_VERSION_PATCH 0
+#define GEO_UTILS_CPP_VERSION_PATCH 1
 
 // Single number for >= comparisons: major * 10000 + minor * 100 + patch,
 // e.g. 1.2.3 -> 10203.
@@ -19,7 +19,7 @@
 #define GEO_UTILS_CPP_VERSION_STR_(x) #x
 #define GEO_UTILS_CPP_VERSION_STR(x) GEO_UTILS_CPP_VERSION_STR_(x)
 
-// "major.minor.patch", e.g. "1.2.0".
+// "major.minor.patch", e.g. "1.2.1".
 #define GEO_UTILS_CPP_VERSION_STRING                  \
     GEO_UTILS_CPP_VERSION_STR(GEO_UTILS_CPP_VERSION_MAJOR) \
     "." GEO_UTILS_CPP_VERSION_STR(GEO_UTILS_CPP_VERSION_MINOR) \

@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.2.1
+
+Tooling-only release: ships the single-header amalgamation as a release
+asset. The library is unchanged — headers are identical to v1.2.0 apart
+from the version macros, so package-manager consumers have nothing to
+update (registry submissions deliberately stay at 1.2.0).
+
+### Added
+
+- **Single-header `geo.hpp`** attached to this and every future release:
+  the whole library as one self-contained file, same API as
+  `#include <geo/geo.hpp>`. Generated deterministically by the new
+  `tools/amalgamate.py`; validated by building the end-to-end example
+  against it and by running the full test suite with the multi-header
+  layout shimmed to the amalgamation (76/76).
+- Release automation (`release-assets.yml`): pushing a release tag creates
+  a draft GitHub release with the notes extracted from `CHANGELOG.md` and
+  `geo.hpp` attached; publishing stays a human decision. This shape is
+  required by the repository's immutable releases — assets can only be
+  attached before publishing, and GitHub Actions release events do not
+  fire for draft activity.
+- A `single-header-smoke` CI job guards the amalgamation on every PR.
+
+### Unchanged (downstream-compatible)
+
+- Every header except the `<geo/version.hpp>` macros is byte-identical to
+  v1.2.0; no API, behavior, or packaging changes.
+
 ## v1.2.0
 
 Route tooling (snap-to-route, `point_at_distance`), `LatLngBounds`,
