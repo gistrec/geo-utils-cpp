@@ -16,6 +16,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -119,6 +121,77 @@ namespace detail {
     double hav_along_track23 = (hav_dist23 - hav_cross_track) / cos_cross_track;
     double sin_sum_along_track = sin_sum_from_hav(hav_along_track13, hav_along_track23);
     return sin_sum_along_track > 0;
+}
+
+// A direction on the unit sphere in Cartesian coordinates.
+struct Vec3 {
+    double x;
+    double y;
+    double z;
+};
+
+[[nodiscard]] inline Vec3 to_unit_vec(const LatLng& point) noexcept {
+    double lat = deg2rad(point.lat);
+    double lng = deg2rad(point.lng);
+    double cos_lat = std::cos(lat);
+    return {cos_lat * std::cos(lng), cos_lat * std::sin(lng), std::sin(lat)};
+}
+
+// Scale-invariant: v does not have to be normalized.
+[[nodiscard]] inline LatLng vec_to_latlng(const Vec3& v) noexcept {
+    return LatLng(rad2deg(std::atan2(v.z, std::sqrt(v.x * v.x + v.y * v.y))),
+                  rad2deg(std::atan2(v.y, v.x)));
+}
+
+[[nodiscard]] inline Vec3 cross(const Vec3& u, const Vec3& v) noexcept {
+    return {u.y * v.z - u.z * v.y,
+            u.z * v.x - u.x * v.z,
+            u.x * v.y - u.y * v.x};
+}
+
+[[nodiscard]] inline double dot(const Vec3& u, const Vec3& v) noexcept {
+    return u.x * v.x + u.y * v.y + u.z * v.z;
+}
+
+// Angle between two directions, in radians. Scale-invariant and, unlike an
+// acos of the dot product, stable for both small and near-pi angles.
+[[nodiscard]] inline double vec_angle(const Vec3& u, const Vec3& v) noexcept {
+    Vec3 c = cross(u, v);
+    return std::atan2(std::sqrt(dot(c, c)), dot(u, v));
+}
+
+// Which point of the minor great-circle arc a->b is closest to p: the
+// perpendicular projection of p onto the arc's great circle (written to proj,
+// not normalized), or one of the endpoints. All inputs are unit vectors.
+enum class ArcNearest { kProjection, kStart, kEnd };
+
+[[nodiscard]] inline ArcNearest nearest_on_arc(const Vec3& a, const Vec3& b, const Vec3& p, Vec3& proj) noexcept {
+    // The nearer endpoint (larger dot product == smaller angle) is also the
+    // endpoint nearer to the projection along the circle, so it doubles as
+    // the answer whenever the projection falls outside the arc.
+    const Vec3 n = cross(a, b);
+    const double n2 = dot(n, n);
+    // n2 == sin^2(arc length). Degenerate arcs — endpoints closer than
+    // ~1e-12 rad or that close to antipodal — have no usable great-circle
+    // normal: for identical endpoints the arc is a point, for antipodal ones
+    // the connecting great circle is not unique (same ambiguity contains()
+    // resolves for 180-degree edges by convention). Use the nearer endpoint.
+    if (n2 <= 1e-24) {
+        return dot(p, a) >= dot(p, b) ? ArcNearest::kStart : ArcNearest::kEnd;
+    }
+    const double k = dot(p, n) / n2;
+    proj = {p.x - k * n.x, p.y - k * n.y, p.z - k * n.z};
+    // p at a pole of the great circle: the whole circle is 90 degrees away,
+    // so the nearer endpoint is as close as any point of the arc.
+    if (dot(proj, proj) <= 1e-24) {
+        return dot(p, a) >= dot(p, b) ? ArcNearest::kStart : ArcNearest::kEnd;
+    }
+    // proj lies within the minor arc iff it is on b's side of the plane
+    // spanned by a and n, and on a's side of the plane spanned by b and n.
+    if (dot(cross(a, proj), n) >= 0 && dot(cross(proj, b), n) >= 0) {
+        return ArcNearest::kProjection;
+    }
+    return dot(p, a) >= dot(p, b) ? ArcNearest::kStart : ArcNearest::kEnd;
 }
 
 // Computes whether a given point lies on or near a polyline within a tolerance.
@@ -281,6 +354,107 @@ template <typename Path>
     }
     LatLng su(start.lat + u * (end.lat - start.lat), start.lng + u * (end.lng - start.lng));
     return distance_between(p, su);
+}
+
+/**
+ * Returns the point of the great-circle segment [start, end] closest to p.
+ *
+ * The geodesically correct counterpart of distance_to_segment: the segment is
+ * the minor great-circle arc between its endpoints, with no planar
+ * approximation — accurate at any latitude and across the antimeridian. The
+ * distance from p to the segment is distance_between(p, closest_point_on_segment(...)).
+ *
+ * Conventions: when the closest point is a segment endpoint, that endpoint is
+ * returned with its coordinates exactly as given. Equal (operator==)
+ * endpoints yield start. Antipodal endpoints do not define a unique great
+ * circle — the nearer endpoint is returned.
+ */
+[[nodiscard]] inline LatLng closest_point_on_segment(const LatLng& p, const LatLng& start, const LatLng& end) noexcept {
+    if (start == end) {
+        return start;
+    }
+    detail::Vec3 proj{0.0, 0.0, 0.0};
+    const detail::ArcNearest nearest = detail::nearest_on_arc(
+        detail::to_unit_vec(start), detail::to_unit_vec(end), detail::to_unit_vec(p), proj);
+    if (nearest == detail::ArcNearest::kStart) {
+        return start;
+    }
+    if (nearest == detail::ArcNearest::kEnd) {
+        return end;
+    }
+    return detail::vec_to_latlng(proj);
+}
+
+/**
+ * The result of projecting a point onto a path: the closest point, the index
+ * of the segment it lies on (from path[segment] to path[segment + 1]; 0 for
+ * a single-point path), and the great-circle distance to it in meters —
+ * always equal to distance_between(point, result.point).
+ */
+struct PathProjection {
+    LatLng point;
+    std::size_t segment;
+    double distance;
+};
+
+/**
+ * Projects the point onto the closest of the path's great-circle segments
+ * ("snap to route"). Segments are minor great-circle arcs, as in
+ * on_path(geodesic = true), and the result is geodesically correct at any
+ * latitude and across the antimeridian — unlike distance_to_segment.
+ *
+ * Returns std::nullopt for an empty path. When several segments are equally
+ * close — typically when the closest point is a shared vertex — the lowest
+ * segment index wins. O(n) in the number of vertices.
+ */
+template <typename Path>
+[[nodiscard]] std::optional<PathProjection> closest_point_on_path(const LatLng& point, const Path& path) {
+    const std::size_t size = path.size();
+    if (size == 0) {
+        return std::nullopt;
+    }
+    const LatLng first(path[0].lat, path[0].lng);
+    if (size == 1) {
+        return PathProjection{first, 0, distance_between(point, first)};
+    }
+
+    // Vertices are converted once and shared between adjacent segments, so
+    // equally-close candidates at a shared vertex compare bit-identically and
+    // the strict < keeps the earliest segment.
+    const detail::Vec3 p = detail::to_unit_vec(point);
+    detail::Vec3 prev = detail::to_unit_vec(first);
+
+    double best_angle = std::numeric_limits<double>::infinity();
+    std::size_t best_segment = 0;
+    detail::ArcNearest best_nearest = detail::ArcNearest::kStart;
+    detail::Vec3 best_proj{0.0, 0.0, 0.0};
+
+    for (std::size_t i = 1; i < size; ++i) {
+        const detail::Vec3 cur = detail::to_unit_vec(LatLng(path[i].lat, path[i].lng));
+        detail::Vec3 proj{0.0, 0.0, 0.0};
+        const detail::ArcNearest nearest = detail::nearest_on_arc(prev, cur, p, proj);
+        const detail::Vec3& candidate =
+            nearest == detail::ArcNearest::kProjection ? proj
+            : nearest == detail::ArcNearest::kStart    ? prev
+                                                       : cur;
+        const double angle = detail::vec_angle(p, candidate);
+        if (angle < best_angle) {
+            best_angle = angle;
+            best_segment = i - 1;
+            best_nearest = nearest;
+            best_proj = proj;
+        }
+        prev = cur;
+    }
+
+    // Endpoint results reuse the original vertex coordinates exactly.
+    const LatLng best_point =
+        best_nearest == detail::ArcNearest::kStart
+            ? LatLng(path[best_segment].lat, path[best_segment].lng)
+        : best_nearest == detail::ArcNearest::kEnd
+            ? LatLng(path[best_segment + 1].lat, path[best_segment + 1].lng)
+            : detail::vec_to_latlng(best_proj);
+    return PathProjection{best_point, best_segment, distance_between(point, best_point)};
 }
 
 /**
