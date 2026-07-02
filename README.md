@@ -51,7 +51,7 @@ Earth approximation model.
 
 - **Lat/lng-native API** — pass latitude/longitude coordinates directly, no
   framework-specific point types to convert through.
-- **Header-only, dependency-free** — about 40 KB across 6 headers; nothing
+- **Header-only, dependency-free** — about 50 KB across 8 headers; nothing
   to build or link.
 - **Spherical math** — distance, heading, offset, interpolation, area.
 - **Polygon utilities** — point-in-polygon, path proximity, snap-to-route
