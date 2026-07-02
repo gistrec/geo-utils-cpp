@@ -481,12 +481,17 @@ template <typename Path>
  * points. A closed polygon (is_closed_polygon) is simplified including its
  * closing segment.
  *
- * Distances are measured with distance_to_segment, so its approximation
- * limits apply — in particular for segments crossing the antimeridian.
+ * By default distances are measured with distance_to_segment (upstream
+ * PolyUtil behavior), so its planar-approximation limits apply — in
+ * particular for segments crossing the antimeridian. Pass geodesic = true
+ * to measure against true great-circle segments via
+ * closest_point_on_segment: exact at any latitude and across the
+ * antimeridian, at two to three times the cost per vertex. Results of the
+ * two modes can differ for vertices near the tolerance threshold.
  * Worst-case complexity is O(n^2).
  */
 template <typename Path>
-[[nodiscard]] std::vector<LatLng> simplify(const Path& poly, double tolerance) {
+[[nodiscard]] std::vector<LatLng> simplify(const Path& poly, double tolerance, bool geodesic = false) {
     std::size_t n = poly.size();
     if (n == 0) {
         return {};
@@ -520,7 +525,10 @@ template <typename Path>
             double max_dist = 0;
             std::size_t max_idx = 0;
             for (std::size_t i = start + 1; i < end; ++i) {
-                double dist = distance_to_segment(working[i], working[start], working[end]);
+                double dist = geodesic
+                    ? distance_between(working[i],
+                          closest_point_on_segment(working[i], working[start], working[end]))
+                    : distance_to_segment(working[i], working[start], working[end]);
                 if (dist > max_dist) {
                     max_dist = dist;
                     max_idx = i;

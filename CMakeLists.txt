@@ -71,6 +71,10 @@ if(GEO_UTILS_CPP_BUILD_TESTS)
     target_link_libraries(geo_utils_cpp_tests
         PRIVATE geo::utils GTest::GTest GTest::Main
     )
+    # Lets the suite assert that <geo/version.hpp> matches project(VERSION).
+    target_compile_definitions(geo_utils_cpp_tests PRIVATE
+        GEO_UTILS_CPP_TEST_CMAKE_VERSION="${PROJECT_VERSION}"
+    )
     gtest_discover_tests(geo_utils_cpp_tests)
 
     if(GEO_UTILS_CPP_ENABLE_COVERAGE)

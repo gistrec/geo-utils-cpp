@@ -51,13 +51,14 @@ Earth approximation model.
 
 - **Lat/lng-native API** — pass latitude/longitude coordinates directly, no
   framework-specific point types to convert through.
-- **Header-only, dependency-free** — about 40 KB across 6 headers; nothing
+- **Header-only, dependency-free** — about 50 KB across 8 headers; nothing
   to build or link.
 - **Spherical math** — distance, heading, offset, interpolation, area.
 - **Polygon utilities** — point-in-polygon, path proximity, snap-to-route
-  (`closest_point_on_path`), and Douglas–Peucker simplification.
+  (`closest_point_on_path`), Douglas–Peucker simplification, and
+  `LatLngBounds` viewport math.
 - **Polyline encoding** — `encode`/`decode` for the Google Encoded Polyline
-  format.
+  format, including the polyline6 grid used by OSRM/Valhalla/Mapbox.
 - **Fast** — matches hand-written haversine on `distance`; especially strong
   on polygon `area` (see [benchmarks](docs/benchmarks.md)).
 - **Focused scope** — intentionally small API for GPS, navigation, tracking,

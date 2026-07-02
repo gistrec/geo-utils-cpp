@@ -60,6 +60,27 @@ struct LatLng {
     }
 
     /**
+     * Returns a copy with the latitude clamped to [-90, 90] and the
+     * longitude wrapped to [-180, 180) — the same conventions the Android
+     * Maps SDK constructor applies, and the same longitude range offset()
+     * and offset_origin() already return. In-range values pass through
+     * bit-exactly (longitude 180 wraps to -180). NaN components propagate;
+     * an infinite longitude yields NaN — the result stays not is_valid().
+     */
+    [[nodiscard]] LatLng normalized() const noexcept {
+        double norm_lat = lat < -90.0 ? -90.0 : (lat > 90.0 ? 90.0 : lat);
+        double norm_lng = lng;
+        if (!(lng >= -180.0 && lng < 180.0)) {
+            norm_lng = std::fmod(lng + 180.0, 360.0);
+            if (norm_lng < 0.0) {
+                norm_lng += 360.0;
+            }
+            norm_lng -= 180.0;
+        }
+        return LatLng(norm_lat, norm_lng);
+    }
+
+    /**
      * Approximate equality with a custom tolerance (in degrees, applied to both
      * latitude and longitude). Longitudes are compared modulo 360 so that 180°
      * and -180° are treated as equal (same meridian).

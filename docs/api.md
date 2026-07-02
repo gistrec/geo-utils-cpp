@@ -22,17 +22,18 @@ are internal and not part of the supported API.
   and pathological inputs may yield NaN. Coordinates are never validated —
   an out-of-range `LatLng` gives unspecified (but memory-safe) results;
   see [LatLng § Validation](#validation). Container-taking functions
-  (`area`, `path_length`, `contains`, `on_edge`, `on_path`,
-  `closest_point_on_path`) are not
+  (`area`, `path_length`, `point_at_distance`, `contains`, `on_edge`,
+  `on_path`, `closest_point_on_path`, `bounds`) are not
   marked `noexcept` because the generic `Path` contract doesn't
   constrain `operator[]` / `size()` to be `noexcept`; they don't throw
   themselves. `encode`, `decode`, and `simplify` return owning
   containers and can throw `std::bad_alloc` on allocation failure.
 - **Include strategy.** Each subsystem has its own header:
   `<geo/latlng.hpp>` (types), `<geo/spherical.hpp>` (distance, heading,
-  area), `<geo/poly.hpp>` (point-in-polygon, on-path), `<geo/encoding.hpp>`
-  (encoded polylines). The umbrella `<geo/geo.hpp>` pulls all four in for
-  convenience.
+  area), `<geo/poly.hpp>` (point-in-polygon, on-path), `<geo/bounds.hpp>`
+  (bounding boxes), `<geo/encoding.hpp>` (encoded polylines), plus
+  `<geo/version.hpp>` (version macros). The umbrella `<geo/geo.hpp>` pulls
+  them all in for convenience.
 
 ## LatLng
 
@@ -76,6 +77,19 @@ still compares unequal to `LatLng(0, 0)`, and rhumb-line functions may
 produce NaN from it. Validate or normalize coordinates at the boundary of
 your system instead of relying on any of this behavior.
 
+To normalize, use `normalized()`: it clamps the latitude to `[-90, 90]` and
+wraps the longitude to `[-180, 180)` — the same conventions as the Android
+Maps SDK constructor. In-range values pass through bit-exactly (longitude
+`180` becomes `-180`); NaN components propagate, so garbage stays invalid
+rather than turning into a fake coordinate.
+
+```cpp
+geo::LatLng{40.7, -74.0}.normalized();  // unchanged
+geo::LatLng{0, 185}.normalized();       // {0, -175}
+geo::LatLng{91, 540}.normalized();      // {90, -180}
+geo::LatLng{NAN, 0}.normalized();       // {NaN, 0} — still !is_valid()
+```
+
 ### Equality
 
 `operator==` performs an **approximate** comparison with tolerance
@@ -99,9 +113,10 @@ a.approx_equal(b, 1e-5);   // true (1e-5° ≈ 1 m on equator)
 
 A series of connected coordinates in an ordered sequence.
 
-`Path` is a template parameter accepted by `path_length`, `area`, `signed_area`,
-`contains`, `on_edge`, `on_path`, `closest_point_on_path`, `is_closed_polygon`,
-`simplify`, and `encode`.
+`Path` is a template parameter accepted by `path_length`, `point_at_distance`,
+`area`, `signed_area`, `contains`, `on_edge`, `on_path`,
+`closest_point_on_path`, `is_closed_polygon`, `simplify`, `bounds`, and
+`encode`.
 It must be a random-access container of `geo::LatLng` — specifically, it must
 support:
 
@@ -286,6 +301,26 @@ std::cout << geo::path_length(path); // ~20,015 km (π·R, half Earth's circumfe
 
 ---
 
+### point_at_distance
+
+**`geo::point_at_distance(const Path& path, double distance)`** — Returns the point that lies `distance` meters along the path from its first vertex — "where is the vehicle after N meters of route". The natural companion of `path_length` and the snap-to-route functions.
+
+- `distance` — meters along the path, measured with the same formula as
+  `path_length`. Clamped to the path: values `<= 0` return the first vertex
+  and values `>= path_length(path)` return the last one, both with their
+  coordinates exactly as given.
+
+Returns: `std::optional<LatLng>` — the point, or `std::nullopt` for an empty path.
+
+```cpp
+std::vector<geo::LatLng> route = { {0, 0}, {0, 10}, {10, 10} };
+
+auto midpoint = geo::point_at_distance(route, geo::path_length(route) / 2);
+auto in_100km = geo::point_at_distance(route, 100'000.0); // {0, ~0.9}
+```
+
+---
+
 ### area
 
 **`geo::area(const Path& path)`** — Returns the area of a closed path on Earth, in square meters. The path is implicitly closed (last vertex connects back to the first); equivalent to `std::abs(signed_area(path))`.
@@ -335,7 +370,9 @@ Utilities for computations involving polygons and polylines.
 > **Note on `geodesic` defaults.** `contains` defaults to rhumb-line
 > edges (cheaper, fine for polygons well inside one hemisphere);
 > `on_edge` and `on_path` default to great-circle edges (more accurate,
-> especially near the poles). Pass `geodesic` explicitly when in doubt.
+> especially near the poles); `simplify` defaults to the planar
+> `distance_to_segment` metric (upstream parity — see its entry). Pass
+> `geodesic` explicitly when in doubt.
 
 ### contains
 
@@ -504,18 +541,24 @@ std::cout << geo::is_closed_polygon(poly); // true
 
 ### simplify
 
-**`geo::simplify(const Path& poly, double tolerance)`** — Simplifies the given polyline or polygon using the [Douglas–Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) decimation algorithm: keeps the vertices that lie farther than `tolerance` meters from the simplified shape, drops the rest. The first and last points are always kept, every returned point is one of the input points (in input order), and the input is not modified.
+**`geo::simplify(const Path& poly, double tolerance, bool geodesic = false)`** — Simplifies the given polyline or polygon using the [Douglas–Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) decimation algorithm: keeps the vertices that lie farther than `tolerance` meters from the simplified shape, drops the rest. The first and last points are always kept, every returned point is one of the input points (in input order), and the input is not modified.
 
 A closed polygon (in the `is_closed_polygon` sense) is simplified including its closing segment, so the result is a closed polygon too.
 
 - `tolerance` — maximum distance in meters a dropped vertex may lie from the simplified path; larger values drop more points.
+- `geodesic` — `false` (default) measures distances with `distance_to_segment`
+  (upstream PolyUtil behavior); `true` measures against true great-circle
+  segments via `closest_point_on_segment`.
 
 Returns: `std::vector<LatLng>` — the simplified path; empty only for an empty input.
 
-> **Note.** Distances are measured with `distance_to_segment`, so its
-> approximation limits apply — in particular for segments crossing the
-> antimeridian. Worst-case complexity is O(n²) in the number of input
-> points.
+> **Note.** With the default `geodesic = false` the `distance_to_segment`
+> approximation limits apply — in particular, polylines crossing the
+> antimeridian are mis-measured and barely simplify. Pass `geodesic = true`
+> for exact behavior at any latitude and across the antimeridian, at two to
+> three times the cost per vertex (see [benchmarks.md](benchmarks.md));
+> vertices near the tolerance threshold may resolve differently between the
+> two modes. Worst-case complexity is O(n²) in the number of input points.
 
 ```cpp
 std::vector<geo::LatLng> route = {
@@ -526,6 +569,64 @@ std::vector<geo::LatLng> route = {
 auto simplified = geo::simplify(route, /*tolerance=*/88.0);
 std::cout << simplified.size(); // 4 — two vertices within 88 m are dropped
 ```
+
+---
+
+## Bounds
+
+A latitude/longitude aligned rectangle — viewport math and a cheap prefilter
+for the polygon functions.
+
+```cpp
+#include <geo/bounds.hpp>
+```
+
+### LatLngBounds
+
+**`geo::LatLngBounds{southwest, northeast}`** — a rectangle delimited by its south-west and north-east corners, in degrees.
+
+The longitude span runs **eastward** from `southwest.lng` to `northeast.lng`,
+so bounds may cross the antimeridian: `southwest.lng > northeast.lng`
+describes exactly that (sw lng `170`, ne lng `-170` covers `[170, 180] ∪
+[-180, -170]`). Equal longitudes describe a single meridian, not the whole
+circle. `southwest.lat <= northeast.lat` is expected; as everywhere in the
+library nothing is validated — use `is_valid()`.
+
+| Member | Meaning |
+|---|---|
+| `contains(point)` | whether the point is inside (boundaries inclusive; longitudes modulo 360, so `180` and `-180` are interchangeable) |
+| `extend(point)` | grow by the smallest amount that contains the point (Android builder semantics; east/west ties go east) |
+| `center()` | center of the bounds; the longitude midpoint follows the eastward span and is wrapped to `[-180, 180)` |
+| `intersects(other)` | whether the two bounds share at least one point (touching edges count) |
+| `lng_span()` | eastward longitude span in degrees, `[0, 360)` |
+| `is_valid()` | corners valid and latitudes ordered |
+| `operator==` | corner-wise approximate equality (`LatLng::operator==` semantics) |
+
+```cpp
+geo::LatLngBounds pacific{{-10, 170}, {10, -170}};  // crosses the antimeridian
+
+pacific.contains({0, 180});   // true
+pacific.contains({0, 0});     // false
+pacific.center();             // {0, 180}
+```
+
+---
+
+### bounds
+
+**`geo::bounds(const Path& path)`** — Returns the bounds of the path, built by extending point-by-point in input order (`extend` semantics). Returns `std::nullopt` for an empty path.
+
+A point outside `bounds(polygon)` is guaranteed to be outside the polygon,
+which makes the bounds a cheap prefilter in front of `contains` / `on_path`:
+
+```cpp
+std::vector<geo::LatLng> polygon = /* ... */;
+auto box = geo::bounds(polygon);
+
+bool inside = box->contains(p) && geo::contains(p, polygon);
+```
+
+Returns: `std::optional<LatLngBounds>`.
 
 ---
 
@@ -540,21 +641,33 @@ used by the Google Maps APIs.
 
 ### encode
 
-**`geo::encode(const Path& path)`** — Encodes a sequence of LatLngs into an encoded path string. Coordinates are quantized to `1e-5` degrees (about one meter), so an encode/decode round-trip is lossy beyond that precision.
+**`geo::encode(const Path& path, unsigned precision = 5)`** — Encodes a sequence of LatLngs into an encoded path string. Coordinates are quantized to `10^-precision` degrees, so an encode/decode round-trip is lossy beyond that grid.
+
+- `precision` — decimal digits of the quantization grid. The default `5`
+  (about one meter) is the classic Google Maps encoding; `6` is the
+  **polyline6** variant used by OSRM, Valhalla, and Mapbox. Valid values are
+  `0` to `6`: at `6` every valid coordinate and every point-to-point delta
+  still fits `decode`'s 32-bit arithmetic (`7` round-trips only deltas under
+  ~107°, counting the first point's offset from `(0, 0)`; `8`+ overflows).
 
 Returns: `std::string` — the encoded polyline; empty for an empty path.
 
 ```cpp
 std::vector<geo::LatLng> path = { {38.5, -120.2}, {40.7, -120.95}, {43.252, -126.453} };
 
-std::cout << geo::encode(path); // "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+std::cout << geo::encode(path);    // "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+std::cout << geo::encode(path, 6); // "_izlhA~rlgdF_{geC~ywl@_kwzCn`{nI" (polyline6)
 ```
 
 ---
 
 ### decode
 
-**`geo::decode(std::string_view encoded)`** — Decodes an encoded path string into a sequence of LatLngs on the `1e-5`-degree grid.
+**`geo::decode(std::string_view encoded, unsigned precision = 5)`** — Decodes an encoded path string into a sequence of LatLngs on the `10^-precision`-degree grid.
+
+- `precision` — must match the precision the string was encoded with: `5`
+  (default) for the classic Google Maps encoding, `6` for polyline6
+  (OSRM, Valhalla, Mapbox).
 
 Returns: `std::vector<LatLng>` — the decoded points; empty for an empty string.
 
@@ -577,3 +690,22 @@ std::cout << path[0];     // LatLng(38.5, -120.2)
 | Symbol | Value | Description |
 |---|---|---|
 | `geo::kDefaultTolerance` | `0.1` | Default tolerance in meters for `on_edge` / `on_path` |
+
+## Version macros
+
+`<geo/version.hpp>` (also pulled in by the umbrella `<geo/geo.hpp>`) defines
+the library version for compile-time feature detection:
+
+| Macro | Example | Description |
+|---|---|---|
+| `GEO_UTILS_CPP_VERSION_MAJOR` / `_MINOR` / `_PATCH` | `1` / `1` / `0` | version components |
+| `GEO_UTILS_CPP_VERSION` | `10100` | `major·10000 + minor·100 + patch`, usable in `#if` |
+| `GEO_UTILS_CPP_VERSION_STRING` | `"1.1.0"` | dotted string |
+
+```cpp
+#include <geo/version.hpp>
+
+#if GEO_UTILS_CPP_VERSION >= 10200
+// use closest_point_on_path, LatLngBounds, ...
+#endif
+```

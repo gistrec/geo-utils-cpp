@@ -72,3 +72,61 @@ static void BM_GeoUtils_PathLength(benchmark::State& state) {
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
 BENCHMARK(BM_GeoUtils_PathLength)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
+
+// --- closest_point_on_path (snap to route) -----------------------------------
+
+static void BM_GeoUtils_ClosestPointOnPath(benchmark::State& state) {
+    const auto route = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
+    const auto queries = geo::bench::bench_queries();
+    for (auto _ : state) {
+        for (const auto& q : queries) {
+            benchmark::DoNotOptimize(geo::closest_point_on_path(q, route));
+        }
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(queries.size()));
+}
+BENCHMARK(BM_GeoUtils_ClosestPointOnPath)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
+
+// --- point_at_distance --------------------------------------------------------
+
+static void BM_GeoUtils_PointAtDistance(benchmark::State& state) {
+    const auto route = geo::bench::bench_polygon(static_cast<std::size_t>(state.range(0)));
+    const double length = geo::path_length(route);
+    // A fixed spread of distances along the route, reused every iteration.
+    std::vector<double> distances;
+    distances.reserve(100);
+    for (int i = 0; i < 100; ++i) {
+        distances.push_back(length * i / 100.0);
+    }
+    for (auto _ : state) {
+        for (double d : distances) {
+            benchmark::DoNotOptimize(geo::point_at_distance(route, d));
+        }
+    }
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(distances.size()));
+}
+BENCHMARK(BM_GeoUtils_PointAtDistance)->Arg(10)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
+
+// --- simplify: planar (default) vs geodesic metric ---------------------------
+//
+// Random global points keep nearly every vertex at this tolerance, so the
+// Douglas-Peucker recursion does full work — a worst-case-shaped input that
+// is identical for both metrics.
+
+static void BM_GeoUtils_Simplify(benchmark::State& state) {
+    const auto route = geo::bench::random_points(static_cast<std::size_t>(state.range(0)));
+    for (auto _ : state) {
+        benchmark::DoNotOptimize(geo::simplify(route, 1000.0));
+    }
+    state.SetItemsProcessed(state.iterations() * state.range(0));
+}
+BENCHMARK(BM_GeoUtils_Simplify)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);
+
+static void BM_GeoUtils_SimplifyGeodesic(benchmark::State& state) {
+    const auto route = geo::bench::random_points(static_cast<std::size_t>(state.range(0)));
+    for (auto _ : state) {
+        benchmark::DoNotOptimize(geo::simplify(route, 1000.0, /*geodesic=*/true));
+    }
+    state.SetItemsProcessed(state.iterations() * state.range(0));
+}
+BENCHMARK(BM_GeoUtils_SimplifyGeodesic)->Arg(100)->Arg(1000)->Repetitions(5)->ReportAggregatesOnly(true);

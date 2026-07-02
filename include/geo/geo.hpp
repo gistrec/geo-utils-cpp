@@ -3,7 +3,9 @@
 
 #pragma once
 
+#include "bounds.hpp"
 #include "encoding.hpp"
 #include "latlng.hpp"
 #include "poly.hpp"
 #include "spherical.hpp"
+#include "version.hpp"

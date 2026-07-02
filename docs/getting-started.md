@@ -103,9 +103,8 @@ conan install --requires=geo-utils-cpp/1.1.0 --build=missing
 
 Conan Center support is pending
 [conan-io/conan-center-index#30152](https://github.com/conan-io/conan-center-index/pull/30152);
-until that lands, install from the local recipe in the
-[conan/](https://github.com/gistrec/geo-utils-cpp/tree/master/conan)
-directory.
+until that lands, the `conan install` line above requires the recipe from
+that PR (or use one of the other installation methods).
 
 ### System install
 
@@ -146,7 +145,10 @@ for tighter compile times:
 // Or individual modules
 #include <geo/latlng.hpp>     // types
 #include <geo/spherical.hpp>  // distance, heading, offset, area
-#include <geo/poly.hpp>       // point-in-polygon, on-path
+#include <geo/poly.hpp>       // point-in-polygon, on-path, snap-to-route
+#include <geo/bounds.hpp>     // LatLngBounds
+#include <geo/encoding.hpp>   // encoded polylines
+#include <geo/version.hpp>    // version macros
 ```
 
 ### Example: distance and heading between two points
@@ -171,7 +173,7 @@ int main() {
 ### Example: round-trip with custom tolerance
 
 `LatLng::operator==` is an approximate comparison with tolerance `1e-12`
-degrees (≈ 0.1 nanometers on Earth) — fine for bit-exact equality, too
+degrees (≈ 0.1 micrometers on Earth) — fine for bit-exact equality, too
 strict to compare results of floating-point geometry. For coarser-scale
 comparisons, pass an explicit tolerance to `approx_equal`:
 
@@ -242,6 +244,8 @@ ctest --test-dir build-cmake --output-on-failure
 | --------------------------------- | ------------------------ | ------- |
 | `GEO_UTILS_CPP_BUILD_TESTS`       | `ON` if top-level        | Build unit tests |
 | `GEO_UTILS_CPP_BUILD_EXAMPLES`    | `ON` if top-level        | Build the examples in [`examples/`](../examples/) |
+| `GEO_UTILS_CPP_BUILD_BENCHMARKS`  | `OFF`                    | Build the [benchmarks](benchmarks.md) (fetches Google Benchmark) |
+| `GEO_UTILS_CPP_BUILD_FUZZERS`     | `OFF`                    | Build the libFuzzer targets in `tests/fuzz/`; Clang only |
 | `GEO_UTILS_CPP_ENABLE_COVERAGE`   | `OFF`                    | gcov instrumentation; GCC/Clang only |
 
 Downstream users consuming `geo-utils-cpp` as a dependency don't need to

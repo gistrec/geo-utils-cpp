@@ -180,6 +180,38 @@ template <typename Path>
 }
 
 /**
+ * Returns the point that lies the given distance (in meters) along the path
+ * from its first vertex — "where is the vehicle after N meters of route".
+ * The distance is clamped to the path: values <= 0 return the first vertex
+ * and values >= path_length(path) return the last one, both with their
+ * coordinates exactly as given. Returns std::nullopt for an empty path.
+ */
+template <typename Path>
+[[nodiscard]] std::optional<LatLng> point_at_distance(const Path& path, double distance) {
+    const std::size_t size = path.size();
+    if (size == 0U) {
+        return std::nullopt;
+    }
+    LatLng prev(path[0].lat, path[0].lng);
+    if (distance <= 0.0) {
+        return prev;
+    }
+    // Segment lengths use the same formula as path_length, so a distance of
+    // path_length(path) lands on the last vertex (up to clamping).
+    double remaining = distance / detail::kEarthRadius;
+    for (std::size_t i = 1; i < size; ++i) {
+        const LatLng cur(path[i].lat, path[i].lng);
+        const double segment = angle_between(prev, cur);
+        if (remaining <= segment) {
+            return segment <= 0.0 ? cur : interpolate(prev, cur, remaining / segment);
+        }
+        remaining -= segment;
+        prev = cur;
+    }
+    return prev;
+}
+
+/**
  * Returns the signed area of a closed path on Earth, in square meters.
  *
  * Sign convention: counter-clockwise when viewed from outside the "inside"

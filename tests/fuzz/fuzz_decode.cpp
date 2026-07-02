@@ -36,8 +36,26 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     }
     if (all_valid) {
         for (std::size_t i = 0; i < decoded.size(); ++i) {
-            // Exact comparison on purpose: both sides are int32 * 1e-5.
+            // Exact comparison on purpose: both sides are int32 / 1e5.
             if (decoded[i].lat != redecoded[i].lat || decoded[i].lng != redecoded[i].lng) {
+                std::abort();
+            }
+        }
+    }
+
+    // Same properties on the polyline6 grid.
+    const std::vector<geo::LatLng> decoded6 = geo::decode(input, 6);
+    const std::vector<geo::LatLng> redecoded6 = geo::decode(geo::encode(decoded6, 6), 6);
+    if (redecoded6.size() != decoded6.size()) {
+        std::abort();
+    }
+    bool all_valid6 = true;
+    for (const auto& point : decoded6) {
+        all_valid6 = all_valid6 && point.is_valid();
+    }
+    if (all_valid6) {
+        for (std::size_t i = 0; i < decoded6.size(); ++i) {
+            if (decoded6[i].lat != redecoded6[i].lat || decoded6[i].lng != redecoded6[i].lng) {
                 std::abort();
             }
         }

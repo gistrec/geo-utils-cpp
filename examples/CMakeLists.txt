@@ -1,4 +1,4 @@
-foreach(example spherical poly)
+foreach(example spherical poly gps_track)
     add_executable(example_${example} ${example}.cpp)
     target_link_libraries(example_${example} PRIVATE geo::utils)
     if(GEO_UTILS_CPP_BUILD_TESTS)
