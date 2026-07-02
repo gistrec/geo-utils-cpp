@@ -553,21 +553,33 @@ used by the Google Maps APIs.
 
 ### encode
 
-**`geo::encode(const Path& path)`** — Encodes a sequence of LatLngs into an encoded path string. Coordinates are quantized to `1e-5` degrees (about one meter), so an encode/decode round-trip is lossy beyond that precision.
+**`geo::encode(const Path& path, unsigned precision = 5)`** — Encodes a sequence of LatLngs into an encoded path string. Coordinates are quantized to `10^-precision` degrees, so an encode/decode round-trip is lossy beyond that grid.
+
+- `precision` — decimal digits of the quantization grid. The default `5`
+  (about one meter) is the classic Google Maps encoding; `6` is the
+  **polyline6** variant used by OSRM, Valhalla, and Mapbox. Valid values are
+  `0` to `6`: at `6` every valid coordinate and every point-to-point delta
+  still fits `decode`'s 32-bit arithmetic (`7` round-trips only deltas under
+  ~107°, counting the first point's offset from `(0, 0)`; `8`+ overflows).
 
 Returns: `std::string` — the encoded polyline; empty for an empty path.
 
 ```cpp
 std::vector<geo::LatLng> path = { {38.5, -120.2}, {40.7, -120.95}, {43.252, -126.453} };
 
-std::cout << geo::encode(path); // "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+std::cout << geo::encode(path);    // "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+std::cout << geo::encode(path, 6); // "_izlhA~rlgdF_{geC~ywl@_kwzCn`{nI" (polyline6)
 ```
 
 ---
 
 ### decode
 
-**`geo::decode(std::string_view encoded)`** — Decodes an encoded path string into a sequence of LatLngs on the `1e-5`-degree grid.
+**`geo::decode(std::string_view encoded, unsigned precision = 5)`** — Decodes an encoded path string into a sequence of LatLngs on the `10^-precision`-degree grid.
+
+- `precision` — must match the precision the string was encoded with: `5`
+  (default) for the classic Google Maps encoding, `6` for polyline6
+  (OSRM, Valhalla, Mapbox).
 
 Returns: `std::vector<LatLng>` — the decoded points; empty for an empty string.
 

@@ -26,6 +26,15 @@ namespace geo {
 
 namespace detail {
 
+// Returns 10^digits as a double; exact for digits <= 15.
+[[nodiscard]] inline double pow10(unsigned digits) noexcept {
+    double factor = 1.0;
+    while (digits-- > 0U) {
+        factor *= 10.0;
+    }
+    return factor;
+}
+
 inline void encode_value(std::int64_t v, std::string& out) {
     // Zig-zag encode in unsigned arithmetic: left-shifting a negative signed
     // value is undefined behavior in C++17.
@@ -44,18 +53,25 @@ inline void encode_value(std::int64_t v, std::string& out) {
 
 /**
  * Encodes a sequence of LatLngs into a string using the Encoded Polyline
- * Algorithm Format. Coordinates are quantized to 1e-5 degrees (about one
- * meter), so an encode/decode round-trip is lossy beyond that precision.
+ * Algorithm Format. Coordinates are quantized to 10^-precision degrees, so
+ * an encode/decode round-trip is lossy beyond that grid. The default
+ * precision 5 (about one meter) is the classic Google Maps grid; pass 6 for
+ * the polyline6 variant used by OSRM, Valhalla, and Mapbox. Valid precisions
+ * are 0 to 6: at 6 every valid coordinate and every point-to-point delta
+ * still fits decode()'s 32-bit arithmetic. Precision 7 round-trips only
+ * deltas under ~107° (including the first point, whose deltas are taken
+ * from (0, 0)); 8+ overflows outright.
  */
 template <typename Path>
-[[nodiscard]] std::string encode(const Path& path) {
+[[nodiscard]] std::string encode(const Path& path, unsigned precision = 5U) {
+    const double factor = detail::pow10(precision);
     std::int64_t last_lat = 0;
     std::int64_t last_lng = 0;
     std::string result;
 
     for (const auto& point : path) {
-        std::int64_t lat = std::llround(point.lat * 1e5);
-        std::int64_t lng = std::llround(point.lng * 1e5);
+        std::int64_t lat = std::llround(point.lat * factor);
+        std::int64_t lng = std::llround(point.lng * factor);
 
         detail::encode_value(lat - last_lat, result);
         detail::encode_value(lng - last_lng, result);
@@ -68,14 +84,17 @@ template <typename Path>
 
 /**
  * Decodes an Encoded Polyline Algorithm Format string into a sequence of
- * LatLngs on the 1e-5-degree grid the format uses.
+ * LatLngs on the 10^-precision-degree grid: 5 (the default) for the classic
+ * Google Maps encoding, 6 for the polyline6 variant used by OSRM, Valhalla,
+ * and Mapbox. The precision must match the one the string was encoded with.
  *
  * The input is assumed to be a well-formed encoded polyline. Decoding any
  * string is memory-safe, but malformed input yields unspecified coordinates;
  * a string truncated mid-point yields the points decoded so far and drops
  * the incomplete trailing point.
  */
-[[nodiscard]] inline std::vector<LatLng> decode(std::string_view encoded) {
+[[nodiscard]] inline std::vector<LatLng> decode(std::string_view encoded, unsigned precision = 5U) {
+    const double factor = detail::pow10(precision);
     std::vector<LatLng> path;
     std::size_t index = 0;
     std::int32_t lat = 0;
@@ -115,7 +134,7 @@ template <typename Path>
         if (!decode_delta(lat) || !decode_delta(lng)) {
             break;
         }
-        path.push_back(LatLng(lat * 1e-5, lng * 1e-5));
+        path.push_back(LatLng(lat / factor, lng / factor));
     }
     return path;
 }
