@@ -144,7 +144,10 @@ location: https://pkg.cppget.org/1/testing
 
 ### Manual
 
-Copy the `include/` directory into your project and add it to your include path.
+Copy the `include/` directory into your project and add it to your include
+path. Or grab the single-header `geo.hpp` attached to the
+[latest release](https://github.com/gistrec/geo-utils-cpp/releases/latest)
+— one file, same API as `#include <geo/geo.hpp>`.
 
 ### Using it from CMake
 
