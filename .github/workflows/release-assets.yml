@@ -1,30 +1,29 @@
-# Attaches the single-header amalgamation (geo.hpp) to releases: generate
-# from the release tag, smoke-test it by building and running the end-to-end
-# example against it, then upload.
+# Creates a DRAFT GitHub release for every release tag, with the notes
+# extracted from CHANGELOG.md and the single-header amalgamation (geo.hpp)
+# attached. A human reviews the draft and publishes it (see RELEASING.md).
 #
-# Triggers on `created` (fires for drafts too): this repository uses
-# immutable releases, so assets can only be attached BEFORE publishing —
-# create the release as a draft, let this workflow attach the header, then
-# flip the draft to published (see RELEASING.md).
+# Why this shape: the repository uses immutable releases, so assets can only
+# be attached before publishing — and GitHub Actions release events do not
+# fire for draft activity at all ("created"/"edited" skip drafts). Triggering
+# on the tag push and creating the draft from inside the workflow is the only
+# flow that both automates the asset and keeps publishing a human decision.
 
 name: Release assets
 
 on:
-  release:
-    types: [created]
+  push:
+    tags: ['v*']
 
 permissions:
   contents: write
 
 jobs:
-  single-header:
+  draft-release:
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ github.event.release.tag_name }}
+      TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.release.tag_name }}
 
       - name: Generate the single header
         run: python3 tools/amalgamate.py -o geo.hpp
@@ -37,7 +36,15 @@ jobs:
               examples/gps_track.cpp -o smoke/gps_track
           ./smoke/gps_track
 
-      - name: Upload to the release
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          awk -v ver="${TAG#v}" '$0 == "## v" ver {flag=1; next} /^## v/ {flag=0} flag' \
+              CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no section for $TAG" && exit 1
+          fi
+
+      - name: Create the draft release with the asset
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$TAG" geo.hpp --clobber
+        run: gh release create "$TAG" --draft --title "$TAG" --notes-file notes.md geo.hpp

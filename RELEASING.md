@@ -30,18 +30,24 @@ git push origin master          # or merge the release PR
 
 - [ ] Wait for **all** workflows on the release commit to go green
       (`gh run list --commit <sha>`) — tag only a green commit.
-- [ ] Annotated tag + GitHub release. The repository uses **immutable
-      releases**: assets can only be attached before publishing, so create
-      the release as a **draft**, let the `Release assets` workflow attach
-      the single-header `geo.hpp` (~1 min), then publish:
+- [ ] Annotated tag + GitHub release. Pushing the tag triggers the
+      `Release assets` workflow, which creates a **draft** release with the
+      notes extracted from `CHANGELOG.md` and the single-header `geo.hpp`
+      attached (the repository uses **immutable releases**, so assets must
+      be attached before publishing — and only a pre-publish draft allows
+      that). Review the draft, then publish:
 
 ```sh
 git tag -a vX.Y.Z -m "geo-utils-cpp vX.Y.Z — <one-line summary>"
 git push origin vX.Y.Z
-gh release create vX.Y.Z --draft --title "vX.Y.Z" --notes-file <notes.md>  # notes = CHANGELOG section
-gh release view vX.Y.Z --json assets --jq '.assets[].name'  # wait for geo.hpp
+# wait ~1 min for the draft to appear with notes + geo.hpp:
+gh release view vX.Y.Z --json isDraft,assets --jq '{draft: .isDraft, assets: [.assets[].name]}'
 gh release edit vX.Y.Z --draft=false
 ```
+
+Fallback if the workflow failed: `python3 tools/amalgamate.py -o geo.hpp`,
+then `gh release create vX.Y.Z --draft --title "vX.Y.Z" --notes-file
+<notes.md> geo.hpp` and publish with `--draft=false`.
 
 ## 3. Hashes of the source tarball
 
