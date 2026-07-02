@@ -19,7 +19,9 @@ are internal and not part of the supported API.
   `noexcept`. Out-of-domain inputs are not asserted: `interpolate` with
   `fraction` outside `[0, 1]` extrapolates along the great circle,
   `offset_origin` returns `std::nullopt` when no origin can be computed,
-  and pathological inputs may yield NaN. Container-taking functions
+  and pathological inputs may yield NaN. Coordinates are never validated —
+  an out-of-range `LatLng` gives unspecified (but memory-safe) results;
+  see [LatLng § Validation](#validation). Container-taking functions
   (`area`, `path_length`, `contains`, `on_edge`, `on_path`) are not
   marked `noexcept` because the generic `Path` contract doesn't
   constrain `operator[]` / `size()` to be `noexcept`; they don't throw
@@ -40,6 +42,8 @@ Represents a geographic coordinate (latitude, longitude) in degrees.
 ```
 
 `geo::LatLng` — a point in geographical coordinates: latitude and longitude.
+All coordinates across the entire API are expressed in **degrees**; radians
+are never used in public signatures.
 
 - Latitude  ranges between `-90` and `90` degrees, inclusive
 - Longitude ranges between `-180` and `180` degrees, inclusive. Note: `180` and `-180` are treated as equal.
@@ -48,6 +52,28 @@ Represents a geographic coordinate (latitude, longitude) in degrees.
 geo::LatLng northPole{90, 0};
 geo::LatLng otherPoint = northPole;
 ```
+
+### Validation
+
+The constructor stores the values exactly as given — it performs **no
+validation, clamping, or wrapping**. Use `is_valid()` to check coordinates
+that come from an untrusted source:
+
+```cpp
+geo::LatLng{90, 180}.is_valid();    // true  — boundaries are inclusive
+geo::LatLng{180, 180}.is_valid();   // false — latitude out of [-90, 90]
+geo::LatLng{0, 360}.is_valid();     // false — longitude out of [-180, 180]
+geo::LatLng{NAN, 0}.is_valid();     // false — non-finite
+```
+
+Passing an out-of-range `LatLng` to `geo::` functions is memory-safe and
+does not throw, but the results are **unspecified**: the values feed straight
+into spherical trigonometry. For example, `LatLng(180, 180)` — latitude
+"wrapped over the pole" — behaves as the direction `(0, 0)` in distance
+computations (`distance_between(LatLng(180, 180), LatLng(0, 0)) == 0`), yet
+still compares unequal to `LatLng(0, 0)`, and rhumb-line functions may
+produce NaN from it. Validate or normalize coordinates at the boundary of
+your system instead of relying on any of this behavior.
 
 ### Equality
 
@@ -195,6 +221,10 @@ assert(!pole.has_value());
 
 Returns: `LatLng` — the interpolated point on the great-circle arc from `from` to `to`.
 
+> **Note.** For (nearly) antipodal endpoints the great circle is not unique,
+> and the result is an arbitrary — though endpoint-correct — path between
+> them (same behavior as android-maps-utils).
+
 ```cpp
 geo::LatLng up{90, 0};
 geo::LatLng front{0, 0};
@@ -258,7 +288,7 @@ std::cout << geo::path_length(path); // ~20,015 km (π·R, half Earth's circumfe
 
 **`geo::area(const Path& path)`** — Returns the area of a closed path on Earth, in square meters. The path is implicitly closed (last vertex connects back to the first); equivalent to `std::abs(signed_area(path))`.
 
-Returns: `double` — signed area in square meters; positive for CCW, negative for CW.
+Returns: `double` — area in square meters, always ≥ 0. For the sign convention use `signed_area`.
 
 ```cpp
 // Lune bounded by meridians 0 and 90 — one quarter of the Earth's surface.

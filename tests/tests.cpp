@@ -1,4 +1,5 @@
 /** Including all tests */
+#include "latlng/is_valid.hpp"
 #include "latlng/operator_equal.hpp"
 
 #include "math/mod.hpp"

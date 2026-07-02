@@ -18,6 +18,23 @@
 
 namespace geo {
 
+/**
+ * A point in geographical coordinates: latitude and longitude, in degrees.
+ * Every geo:: function takes and returns coordinates in degrees; radians are
+ * never used in the public API.
+ *
+ * Valid ranges:
+ * - latitude:  [-90, 90]
+ * - longitude: [-180, 180]; 180 and -180 denote the same meridian
+ *
+ * The constructor stores the values exactly as given — no validation,
+ * clamping, or wrapping (use is_valid() to check coordinates from untrusted
+ * sources). Passing an out-of-range LatLng to geo:: functions is memory-safe
+ * and does not throw, but the results are unspecified: the values feed
+ * straight into spherical trigonometry, so e.g. LatLng(180, 180) — latitude
+ * "wrapped over the pole" — behaves as the direction (0, 0) in distance
+ * computations while still comparing unequal to LatLng(0, 0).
+ */
 struct LatLng {
     // Default tolerance used by operator==. Roughly 0.1 micrometers (111 nm)
     // on Earth — tighter than any practical computation, but loose enough for
@@ -32,6 +49,15 @@ struct LatLng {
 
     LatLng(const LatLng&) noexcept = default;
     LatLng& operator=(const LatLng&) noexcept = default;
+
+    /**
+     * Returns whether this is a valid geographic coordinate: latitude in
+     * [-90, 90] and longitude in [-180, 180], both finite. NaN and infinite
+     * components are invalid.
+     */
+    [[nodiscard]] constexpr bool is_valid() const noexcept {
+        return lat >= -90.0 && lat <= 90.0 && lng >= -180.0 && lng <= 180.0;
+    }
 
     /**
      * Approximate equality with a custom tolerance (in degrees, applied to both
