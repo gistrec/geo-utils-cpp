@@ -687,3 +687,22 @@ std::cout << path[0];     // LatLng(38.5, -120.2)
 | Symbol | Value | Description |
 |---|---|---|
 | `geo::kDefaultTolerance` | `0.1` | Default tolerance in meters for `on_edge` / `on_path` |
+
+## Version macros
+
+`<geo/version.hpp>` (also pulled in by the umbrella `<geo/geo.hpp>`) defines
+the library version for compile-time feature detection:
+
+| Macro | Example | Description |
+|---|---|---|
+| `GEO_UTILS_CPP_VERSION_MAJOR` / `_MINOR` / `_PATCH` | `1` / `1` / `0` | version components |
+| `GEO_UTILS_CPP_VERSION` | `10100` | `major·10000 + minor·100 + patch`, usable in `#if` |
+| `GEO_UTILS_CPP_VERSION_STRING` | `"1.1.0"` | dotted string |
+
+```cpp
+#include <geo/version.hpp>
+
+#if GEO_UTILS_CPP_VERSION >= 10200
+// use closest_point_on_path, LatLngBounds, ...
+#endif
+```

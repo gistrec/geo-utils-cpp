@@ -30,6 +30,8 @@
 #include "encoding/decode.hpp"
 #include "encoding/encode.hpp"
 
+#include "version/version.hpp"
+
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);

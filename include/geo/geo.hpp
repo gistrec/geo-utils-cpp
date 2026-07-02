@@ -8,3 +8,4 @@
 #include "latlng.hpp"
 #include "poly.hpp"
 #include "spherical.hpp"
+#include "version.hpp"
