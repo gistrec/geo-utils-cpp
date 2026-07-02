@@ -163,6 +163,11 @@ For more details, see [docs/getting-started.md](docs/getting-started.md).
 
 ## Usage
 
+> **Try it online.** No install needed —
+> [open the library in Compiler Explorer](https://godbolt.org/z/hx6W3WMsa):
+> the single-header build with a runnable distance / snap-to-route /
+> point-at-distance demo.
+
 Distance and heading between two points:
 
 ```cpp
@@ -224,19 +229,20 @@ int main() {
 `geo-utils-cpp` is header-only with no runtime dependencies. Throughput on
 Apple M1 / clang 17 / `-O2 -DNDEBUG` (higher is better):
 
-| Library              | `distance_between` (M pairs/s) | `area` (poly N=100, M polys/s) |
-| -------------------- | -----------------------------: | -----------------------------: |
-| **geo-utils-cpp**    |                       **40.5** |                       **67.2** |
-| naive haversine      |                           38.3 |                             —  |
-| S2 Geometry          |                           82.9 |                           14.0 |
-| Boost.Geometry       |                           39.8 |                           36.2 |
-| GeographicLib        |                            1.2 |                            2.0 |
+| Library              | `distance_between` (M pairs/s) | `area` (poly N=100, M polys/s) | `point_at_distance` (route N=100, M queries/s) |
+| -------------------- | -----------------------------: | -----------------------------: | ---------------------------------------------: |
+| **geo-utils-cpp**    |                       **40.5** |                       **67.2** |                                        **0.79** |
+| naive haversine      |                           38.3 |                             —  |                                              —  |
+| S2 Geometry          |                           82.9 |                           14.0 |                                            0.50 |
+| Boost.Geometry       |                           39.8 |                           36.2 |                                              —  |
+| GeographicLib        |                            1.2 |                            2.0 |                                              —  |
 
 Native types are pre-built outside the timed loop, so the table compares
 algorithmic cost rather than object-construction overhead. `geo-utils-cpp`
 matches hand-written haversine and Boost.Geometry on simple spherical operations,
-is especially strong on `area`, while S2 is faster on several operations when
-conversion from lat/lng is excluded.
+is especially strong on `area`, and beats `S2Polyline::Interpolate` by
+1.6–1.9× on `point_at_distance`; S2 is faster on several other operations
+when conversion from lat/lng is excluded.
 
 See [docs/benchmarks.md](docs/benchmarks.md) for full methodology, all
 operations, and when to use each library.
