@@ -1,0 +1,72 @@
+# Reproducibility check for the README assets (see tools/make-assets.sh).
+#
+# Only docs/assets/benchmarks.svg is BYTE-GATED. It is genuinely platform-
+# independent: SVG is uncompressed text, svg.fonttype=path embeds glyph outlines
+# extracted by the pinned fonttools (no dependency on installed fonts), and a
+# fixed svg.hashsalt + metadata={"Date": None} strip the remaining nondeterminism.
+#
+# The rasters/GIFs (hero-pipeline.gif, gallery/simplify.gif, social-preview.png)
+# and the emitter's GeoJSON/JSONL are regenerated here as a SMOKE TEST -- they
+# must build and render without error -- but are deliberately NOT byte-diffed:
+# byte-exact matplotlib Agg raster reproduction across independently-provisioned
+# runners is unreliable, so like demo.gif and the gallery tile stills they are
+# committed by hand. Regenerate everything with 'bash tools/make-assets.sh'.
+#
+# Runs on macOS (arm64) on purpose: the committed SVG's glyph outlines come from
+# the pinned matplotlib/fonttools wheels, matching the platform the assets were
+# rendered on. House style: no retry wrappers -- if a run is flaky, re-run by hand.
+
+name: Assets
+
+on:
+  push:
+    paths:
+      - 'tools/**'
+      - 'docs/assets/**'
+      - '.github/workflows/assets.yml'
+  pull_request:
+    paths:
+      - 'tools/**'
+      - 'docs/assets/**'
+      - '.github/workflows/assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build and smoke-run the emitter
+        run: |
+          mkdir -p build
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -Iinclude \
+              tools/assets/emit.cpp -o build/emit
+          build/emit                 > /tmp/track.geojson
+          build/emit --dp-frames     > /tmp/dp.jsonl
+          build/emit --eta-frames 60 > /tmp/eta.jsonl
+          test -s /tmp/track.geojson && test -s /tmp/dp.jsonl && test -s /tmp/eta.jsonl
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install the pinned renderer dependencies
+        run: python -m pip install -r tools/render/requirements.txt
+
+      - name: Regenerate the assets (smoke-test the renderers)
+        run: |
+          python tools/render/bench.py     # benchmarks.svg  (byte-gated below)
+          python tools/render/hero.py      # hero-pipeline.gif + gallery/simplify.gif
+          python tools/render/social.py    # social-preview.png
+
+      - name: Fail on benchmarks.svg drift
+        run: |
+          if ! git diff --exit-code -- docs/assets/benchmarks.svg; then
+            echo "::error::Committed docs/assets/benchmarks.svg differs from a fresh" \
+                 "render. Run 'bash tools/make-assets.sh' and commit the result."
+            exit 1
+          fi

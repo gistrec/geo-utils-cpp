@@ -48,5 +48,9 @@ Thumbs.db
 *.swp
 *~
 
+# Python bytecode (asset renderers import each other under tools/render/)
+__pycache__/
+*.pyc
+
 # Tool sessions
 .claude/

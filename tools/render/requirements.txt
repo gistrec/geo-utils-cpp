@@ -1,0 +1,39 @@
+# Pinned dependencies for the DETERMINISTIC asset renderers:
+#   bench.py     -> docs/assets/benchmarks.svg
+#   hero.py      -> docs/assets/hero-pipeline.gif, docs/assets/gallery/simplify.gif
+#   social.py    -> docs/assets/social-preview.png
+#
+# The CI drift-gate (.github/workflows/assets.yml) installs exactly these and
+# regenerates the assets, so the versions must match the ones the committed
+# assets were rendered with. matplotlib bundles FreeType 2.6.1 in its wheels
+# and Agg is self-contained; with identical versions on the same platform the
+# SVG/PNG/GIF bytes reproduce, which is what makes the exact-diff gate work.
+#
+#   pip install -r tools/render/requirements.txt
+#
+# Regenerated with matplotlib 3.9.4 / Python 3.13 on macOS arm64.
+
+matplotlib==3.9.4
+pillow==10.4.0
+numpy==2.5.1
+
+# matplotlib's transitive dependencies, pinned too because they touch the
+# output bytes: fonttools extracts the glyph outlines embedded in
+# benchmarks.svg (svg.fonttype = path), and contourpy / kiwisolver drive the
+# layout solver.
+contourpy==1.3.3
+cycler==0.12.1
+fonttools==4.63.0
+kiwisolver==1.5.0
+packaging==26.2
+pyparsing==3.3.2
+python-dateutil==2.9.0.post0
+
+# ---------------------------------------------------------------------------
+# gallery.py ONLY -- the four map stills (#5-#8) fetch OSM / Natural Earth
+# tiles and are therefore NON-deterministic: rendered locally and committed by
+# hand, never installed or run in CI. Uncomment to render them yourself (needs
+# network access to the tile servers):
+#
+#   staticmap==0.5.7
+#   Cartopy==0.23.0
