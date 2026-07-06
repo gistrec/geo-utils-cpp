@@ -1,72 +1,203 @@
+<div align="center">
+
 # geo-utils-cpp
 
-<p align="left">
-    <a href="https://github.com/gistrec/geo-utils-cpp/actions/workflows/ci.yml">
-        <img src="https://github.com/gistrec/geo-utils-cpp/actions/workflows/ci.yml/badge.svg" alt="CI">
-    </a>
-    <a href="https://github.com/gistrec/geo-utils-cpp/actions/workflows/vcpkg.yml">
-        <img src="https://github.com/gistrec/geo-utils-cpp/actions/workflows/vcpkg.yml/badge.svg" alt="vcpkg">
-    </a>
-    <a href="https://github.com/gistrec/geo-utils-cpp/actions/workflows/xrepo.yml">
-        <img src="https://github.com/gistrec/geo-utils-cpp/actions/workflows/xrepo.yml/badge.svg" alt="xrepo">
-    </a>
-    <a href="https://app.codacy.com/gh/gistrec/geo-utils-cpp/dashboard">
-      <img src="https://img.shields.io/codacy/grade/bcff544711544d5fb7da95b68abf566d" alt="Code quality">
-    </a>
-    <a href="https://codecov.io/gh/gistrec/geo-utils-cpp">
-      <img src="https://codecov.io/gh/gistrec/geo-utils-cpp/graph/badge.svg" alt="Coverage">
-    </a>
-    <a href="https://github.com/gistrec/geo-utils-cpp/releases">
-        <img src="https://img.shields.io/github/v/release/gistrec/geo-utils-cpp" alt="Release">
-    </a>
-</p>
-<p align="left">
-    <a href="#">
-      <img src="https://img.shields.io/badge/C%2B%2B-17-blue" alt="C++17">
-    </a>
-    <a href="#">
-      <img src="https://img.shields.io/badge/CMake-3.14%2B-064F8C?logo=cmake&logoColor=white" alt="CMake 3.14+">
-    </a>
-    <a href="#">
-      <img src="https://img.shields.io/badge/header--only-yes-brightgreen" alt="Header-only">
-    </a>
-    <a href="#">
-      <img src="https://img.shields.io/badge/platform-Linux%20%C2%B7%20macOS%20%C2%B7%20Windows-brightgreen" alt="Supported platforms">
-    </a>
-    <a href="https://github.com/gistrec/geo-utils-cpp/blob/master/LICENSE">
-        <img src="https://img.shields.io/github/license/gistrec/geo-utils-cpp?color=brightgreen" alt="License">
-    </a>
+**Google Maps geometry, ported to modern C++ — in a single header.**
+
+_The lat/lng math you keep copy-pasting from Stack Overflow — as one clean header._
+
+<!-- Row 1 — identity + trust -->
+<p align="center">
+  <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17">
+  <img src="https://img.shields.io/badge/header--only-yes-brightgreen" alt="Header-only">
+  <img src="https://img.shields.io/badge/dependencies-zero-brightgreen" alt="Zero dependencies">
+  <a href="https://github.com/gistrec/geo-utils-cpp/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
+  <a href="https://github.com/gistrec/geo-utils-cpp/actions/workflows/ci.yml"><img src="https://github.com/gistrec/geo-utils-cpp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/gistrec/geo-utils-cpp"><img src="https://codecov.io/gh/gistrec/geo-utils-cpp/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/gistrec/geo-utils-cpp/releases"><img src="https://img.shields.io/github/v/release/gistrec/geo-utils-cpp" alt="Latest release"></a>
 </p>
 
-Practical latitude/longitude geometry for C++17 projects that need GPS math,
-not a full geometry framework.
+<!-- Row 2 — try + get (registry version shields, not CI) -->
+<p align="center">
+  <a href="https://godbolt.org/z/hx6W3WMsa"><img src="https://img.shields.io/badge/Compiler%20Explorer-try%20online-004080?logo=compilerexplorer&logoColor=white" alt="Try in Compiler Explorer"></a>
+  <a href="https://vcpkg.io/en/package/geo-utils-cpp"><img src="https://img.shields.io/vcpkg/v/geo-utils-cpp?logo=cmake&logoColor=white" alt="vcpkg version"></a>
+  <a href="https://github.com/xmake-io/xmake-repo"><img src="https://img.shields.io/badge/xrepo-geo--utils--cpp-2C3E50" alt="xrepo package"></a>
+  <a href="https://cppget.org/libgeo-utils-cpp"><img src="https://img.shields.io/badge/build2-libgeo--utils--cpp-2C3E50" alt="build2 / cppget package"></a>
+  <a href="https://github.com/conan-io/conan-center-index/pull/30152"><img src="https://img.shields.io/badge/Conan--Center-pending-9E9E9E?logo=conan&logoColor=white" alt="Conan Center (pending)"></a>
+  <a href="https://github.com/mesonbuild/wrapdb/pull/2820"><img src="https://img.shields.io/badge/Meson%20WrapDB-pending-9E9E9E?logo=meson&logoColor=white" alt="Meson WrapDB (pending)"></a>
+</p>
 
-Distance, heading, polygon area, point-in-polygon, and path proximity checks —
-header-only, no dependencies, no build step.
+<!-- ASSET: docs/assets/hero-pipeline.gif (hero, width=1000) -->
 
-The API is inspired by Google Maps geometry utilities and uses the same spherical
-Earth approximation model.
+**▶ [Try it live in Compiler Explorer](https://godbolt.org/z/hx6W3WMsa)** — no install needed
 
-## Features
+<sub>A runnable single-header build: distance, snap-to-route, and point-at-distance demos.</sub>
 
-- **Lat/lng-native API** — pass latitude/longitude coordinates directly, no
-  framework-specific point types to convert through.
-- **Header-only, dependency-free** — about 50 KB across 8 headers; nothing
-  to build or link.
-- **Spherical math** — distance, heading, offset, interpolation, area.
-- **Polygon utilities** — point-in-polygon, path proximity, snap-to-route
-  (`closest_point_on_path`), Douglas–Peucker simplification, and
-  `LatLngBounds` viewport math.
-- **Polyline encoding** — `encode`/`decode` for the Google Encoded Polyline
-  format, including the polyline6 grid used by OSRM/Valhalla/Mapbox.
-- **Fast** — matches hand-written haversine on `distance`; especially strong
-  on polygon `area` (see [benchmarks](docs/benchmarks.md)).
-- **Focused scope** — intentionally small API for GPS, navigation, tracking,
-  backend, and GIS workflows.
+</div>
+
+<p align="center"><b>67M polygons/s (~1.9× Boost, ~5× S2) · 40M distance calls/s · 1.6–1.9× faster than S2 on <code>point_at_distance</code></b><br>
+<sub><a href="#which-library-should-i-pick">→ see the numbers</a> · Apple M1 / clang 17 / <code>-O2 -DNDEBUG</code></sub></p>
+
+---
+
+**Contents:** [Why](#why-geo-utils-cpp) · [API at a glance](#api-at-a-glance) · [Quick start](#quick-start) · [Which library should I pick?](#which-library-should-i-pick) · [Installation](#installation) · [Requirements & compatibility](#requirements--compatibility) · [API reference](#api-reference)
+
+## Why geo-utils-cpp
+
+- **Drop-in.** About 50 KB across 8 headers — no dependencies, no build step. Copy `include/`
+  (or the single amalgamated `geo.hpp`) and `#include <geo/...>`.
+- **Lat/lng-native.** Pass latitude/longitude in degrees; there are no framework-specific
+  point types to convert through.
+- **Everything for GPS work.** Distance, heading, offset, interpolation, polygon area,
+  point-in-polygon, path proximity, snap-to-route, Douglas–Peucker simplification, and
+  antimeridian-aware `LatLngBounds` viewport math.
+- **Speaks the map stack.** `encode`/`decode` for the Google Encoded Polyline format, including
+  the polyline6 grid used by OSRM, Valhalla, and Mapbox.
+- **Fast where it counts.** Matches hand-written haversine on `distance` and is especially strong
+  on polygon `area` — see [the benchmarks](#which-library-should-i-pick).
+- **Focused scope.** A small, stable API aimed at GPS, navigation, tracking, backend, and GIS
+  workflows — not a full geometry framework.
+
+The API is inspired by Google Maps geometry utilities and uses the same spherical Earth model.
+
+## API at a glance
+
+<!-- ASSET (future gallery, brief #2/#3): docs/assets/gallery/great-circle.png, snap-to-route.png, point-in-polygon.png, encode-decode.png, simplify.gif -->
+
+| Header | Key functions | What it does |
+| --- | --- | --- |
+| `<geo/spherical.hpp>` | `distance_between`, `heading`, `offset`, `interpolate`, `path_length`, `point_at_distance`, `area` | Great-circle distance and bearing, move-by-distance, slerp, route length, the point _N_ meters along a route, and polygon area. |
+| `<geo/poly.hpp>` | `contains`, `on_path`, `closest_point_on_path`, `simplify` | Point-in-polygon, path-proximity checks, snap-to-route projection, and Douglas–Peucker simplification. |
+| `<geo/encoding.hpp>` | `encode`, `decode` | Google Encoded Polyline — precision 5, plus polyline6 for OSRM / Valhalla / Mapbox. |
+| `<geo/bounds.hpp>` | `LatLngBounds`, `bounds` | Antimeridian-aware viewport rectangle: `contains`, `center`, `extend`, `intersects`. |
+| `<geo/latlng.hpp>` | `LatLng`, `is_valid`, `normalized` | The degrees-in / degrees-out coordinate type used everywhere. |
+| `<geo/geo.hpp>` | — | Umbrella header that pulls in all of the above. |
+
+Full signatures and semantics: [docs/api.md](docs/api.md).
+
+## Quick start
+
+<!-- ASSET: docs/assets/demo.gif (quick start, terminal demo) -->
+
+Distance and heading between two points:
+
+```cpp
+#include <iostream>
+
+#include <geo/spherical.hpp>
+
+int main() {
+    geo::LatLng newYork = { 40.7128, -74.0060 };
+    geo::LatLng london  = { 51.5074,  -0.1278 };
+
+    double distance = geo::distance_between(newYork, london);
+    double heading  = geo::heading(newYork, london);
+
+    std::cout << "Distance: " << distance / 1000.0 << " km\n";
+    std::cout << "Heading:  " << heading << " deg\n";
+}
+```
+
+Polygon area, point-in-polygon, path length, and path proximity:
+
+```cpp
+#include <iostream>
+#include <vector>
+
+#include <geo/poly.hpp>
+
+int main() {
+    // A small box around midtown Manhattan (vertices in CCW order).
+    std::vector<geo::LatLng> midtown = {
+        {40.74, -74.01}, {40.74, -73.96}, {40.78, -73.96}, {40.78, -74.01},
+    };
+    geo::LatLng timesSquare{40.7580, -73.9855};
+
+    std::cout << "Times Square inside: "
+              << (geo::contains(timesSquare, midtown) ? "true" : "false") << "\n";
+    std::cout << "Polygon area: "
+              << geo::area(midtown) / 1e6 << " km^2\n";
+
+    // A short polyline along Broadway, and a point near it.
+    std::vector<geo::LatLng> route = {
+        {40.7580, -73.9855},  // Times Square
+        {40.7680, -73.9818},  // Columbus Circle
+        {40.7780, -73.9740},  // Lincoln Center
+    };
+    geo::LatLng nearby{40.7670, -73.9820};
+
+    std::cout << "Route length: "
+              << geo::path_length(route) / 1000.0 << " km\n";
+    std::cout << "Point within 200 m of route: "
+              << (geo::on_path(nearby, route, /*geodesic=*/true, /*tolerance=*/200.0)
+                  ? "true" : "false")
+              << "\n";
+}
+```
+
+_Run both online, no install needed — [open them in Compiler Explorer](https://godbolt.org/z/hx6W3WMsa)._
+
+## Which library should I pick?
+
+`geo-utils-cpp` is header-only with no runtime dependencies. Throughput on
+Apple M1 / clang 17 / `-O2 -DNDEBUG` (higher is better):
+
+<!-- ASSET: docs/assets/benchmarks.svg (above the benchmark table) -->
+
+| Library              | `distance_between` (M pairs/s) | `area` (poly N=100, M polys/s) | `point_at_distance` (route N=100, M queries/s) |
+| -------------------- | -----------------------------: | -----------------------------: | ---------------------------------------------: |
+| **geo-utils-cpp**    |                       **40.5** |                       **67.2** |                                        **0.79** |
+| naive haversine      |                           38.3 |                             —  |                                              —  |
+| S2 Geometry          |                           82.9 |                           14.0 |                                            0.50 |
+| Boost.Geometry       |                           39.8 |                           36.2 |                                              —  |
+| GeographicLib        |                            1.2 |                            2.0 |                                              —  |
+
+### Feature matrix
+
+| Capability | geo-utils-cpp | S2 Geometry | Boost.Geometry | GeographicLib |
+| --- | :--: | :--: | :--: | :--: |
+| Header-only, zero dependencies | ✅ | — | — | — |
+| Lat/lng-native API (degrees in / out) | ✅ | — | — | — |
+| Distance, heading, polygon area | ✅ | ✅ | ✅ | ✅ ¹ |
+| Point-in-polygon & snap-to-route | ✅ | ✅ | ✅ | — |
+| Google polyline encode/decode (5 & 6) | ✅ | — | — | — |
+| Sub-meter WGS84 ellipsoidal geodesics | — | — | — | ✅ |
+| Spatial indexing (S2 cells / R-tree) | — | ✅ | ✅ | — |
+| Broad geometry types & coordinate systems | — | — | ✅ | — |
+
+<sup>¹ GeographicLib computes on the WGS84 ellipsoid (sub-meter accuracy) rather than a sphere.</sup>
+
+**Reach for something else when:**
+
+- You need high-precision ellipsoidal geodesics or sub-meter accuracy — use **GeographicLib**.
+- Polygon containment is your main hot path, especially for larger polygons — consider **S2 Geometry**.
+- You need many geometry types, coordinate systems, or generic geometry algorithms — **Boost.Geometry**
+  may be a better fit.
+- You need spatial indexing — use **S2**, **CGAL**, or another dedicated spatial index.
+
+**Accuracy.** `geo-utils-cpp` uses a spherical Earth model (mean radius 6371009 m — the same model
+Google Maps geometry utilities use), not the WGS84 ellipsoid. That is the right trade-off for GPS,
+navigation, and tracking, but not for sub-meter surveying; precision also degrades near the poles and
+for antipodal pairs. See [docs/api.md](docs/api.md) and [docs/benchmarks.md](docs/benchmarks.md) for
+the details.
+
+<details>
+<summary><b>Benchmark methodology</b></summary>
+
+Native types are pre-built outside the timed loop, so the table compares algorithmic cost rather than
+object-construction overhead. `geo-utils-cpp` matches hand-written haversine and Boost.Geometry on
+simple spherical operations, is especially strong on `area`, and beats `S2Polyline::Interpolate` by
+1.6–1.9× on `point_at_distance`; S2 is faster on several other operations when conversion from lat/lng
+is excluded.
+
+See [docs/benchmarks.md](docs/benchmarks.md) for full methodology, all operations, and when to use
+each library.
+
+</details>
 
 ## Installation
 
-### FetchContent
+The fastest path is CMake **FetchContent** — no system install required:
 
 ```cmake
 include(FetchContent)
@@ -80,6 +211,9 @@ FetchContent_MakeAvailable(GeoUtilsCpp)
 
 target_link_libraries(your_target PRIVATE geo::utils)
 ```
+
+<details>
+<summary><b>Other package managers</b> — vcpkg · xrepo · Conan · build2 · single-header · CMake wiring</summary>
 
 ### vcpkg
 
@@ -142,7 +276,7 @@ role: prerequisite
 location: https://pkg.cppget.org/1/testing
 ```
 
-### Manual
+### Manual / single-header
 
 Copy the `include/` directory into your project and add it to your include
 path. Or grab the single-header `geo.hpp` attached to
@@ -161,105 +295,38 @@ target_link_libraries(your_target PRIVATE geo::utils)
 
 For more details, see [docs/getting-started.md](docs/getting-started.md).
 
-## Usage
+</details>
 
-> **Try it online.** No install needed —
-> [open the library in Compiler Explorer](https://godbolt.org/z/hx6W3WMsa):
-> the single-header build with a runnable distance / snap-to-route /
-> point-at-distance demo.
+## Requirements & compatibility
 
-Distance and heading between two points:
+Any toolchain with complete C++17 support. Continuous integration builds and tests on:
 
-```cpp
-#include <iostream>
+| Platform | Compiler (CI) | Notes |
+| --- | --- | --- |
+| Linux | GCC, Clang | built at `-Wall -Wextra -Wpedantic -Werror` |
+| macOS | AppleClang | built at `-Wall -Wextra -Wpedantic -Werror` |
+| Windows | MSVC | default warning level |
 
-#include <geo/spherical.hpp>
+The full test suite also runs under AddressSanitizer + UndefinedBehaviorSanitizer, with a libFuzzer
+smoke test over `geo::decode`. The library needs only C++17; the optional CMake integration requires
+CMake ≥ 3.14. Releases follow [semantic versioning](https://semver.org), and `<geo/version.hpp>`
+exposes `GEO_UTILS_CPP_VERSION` for `#if` compatibility checks.
 
-int main() {
-    geo::LatLng newYork = { 40.7128, -74.0060 };
-    geo::LatLng london  = { 51.5074,  -0.1278 };
+## API reference
 
-    double distance = geo::distance_between(newYork, london);
-    double heading  = geo::heading(newYork, london);
+Full API reference: [docs/api.md](docs/api.md). New here? Start with
+[docs/getting-started.md](docs/getting-started.md). Performance details live in
+[docs/benchmarks.md](docs/benchmarks.md).
 
-    std::cout << "Distance: " << distance / 1000.0 << " km\n";
-    std::cout << "Heading:  " << heading << " deg\n";
-}
-```
+## Contributing
 
-Polygon area, point-in-polygon, path length, and path proximity:
+Issues and pull requests are welcome —
+[open an issue](https://github.com/gistrec/geo-utils-cpp/issues) or send a PR.
 
-```cpp
-#include <iostream>
-#include <vector>
+## Credits
 
-#include <geo/poly.hpp>
-
-int main() {
-    // A small box around midtown Manhattan (vertices in CCW order).
-    std::vector<geo::LatLng> midtown = {
-        {40.74, -74.01}, {40.74, -73.96}, {40.78, -73.96}, {40.78, -74.01},
-    };
-    geo::LatLng timesSquare{40.7580, -73.9855};
-
-    std::cout << "Times Square inside: "
-              << (geo::contains(timesSquare, midtown) ? "true" : "false") << "\n";
-    std::cout << "Polygon area: "
-              << geo::area(midtown) / 1e6 << " km^2\n";
-
-    // A short polyline along Broadway, and a point near it.
-    std::vector<geo::LatLng> route = {
-        {40.7580, -73.9855},  // Times Square
-        {40.7680, -73.9818},  // Columbus Circle
-        {40.7780, -73.9740},  // Lincoln Center
-    };
-    geo::LatLng nearby{40.7670, -73.9820};
-
-    std::cout << "Route length: "
-              << geo::path_length(route) / 1000.0 << " km\n";
-    std::cout << "Point within 200 m of route: "
-              << (geo::on_path(nearby, route, /*geodesic=*/true, /*tolerance=*/200.0)
-                  ? "true" : "false")
-              << "\n";
-}
-```
-
-## Benchmarks
-
-`geo-utils-cpp` is header-only with no runtime dependencies. Throughput on
-Apple M1 / clang 17 / `-O2 -DNDEBUG` (higher is better):
-
-| Library              | `distance_between` (M pairs/s) | `area` (poly N=100, M polys/s) | `point_at_distance` (route N=100, M queries/s) |
-| -------------------- | -----------------------------: | -----------------------------: | ---------------------------------------------: |
-| **geo-utils-cpp**    |                       **40.5** |                       **67.2** |                                        **0.79** |
-| naive haversine      |                           38.3 |                             —  |                                              —  |
-| S2 Geometry          |                           82.9 |                           14.0 |                                            0.50 |
-| Boost.Geometry       |                           39.8 |                           36.2 |                                              —  |
-| GeographicLib        |                            1.2 |                            2.0 |                                              —  |
-
-Native types are pre-built outside the timed loop, so the table compares
-algorithmic cost rather than object-construction overhead. `geo-utils-cpp`
-matches hand-written haversine and Boost.Geometry on simple spherical operations,
-is especially strong on `area`, and beats `S2Polyline::Interpolate` by
-1.6–1.9× on `point_at_distance`; S2 is faster on several other operations
-when conversion from lat/lng is excluded.
-
-See [docs/benchmarks.md](docs/benchmarks.md) for full methodology, all
-operations, and when to use each library.
-
-## When not to use
-
-- If you need high-precision ellipsoidal geodesics or sub-meter accuracy, use
-  GeographicLib.
-- If polygon containment is your main hot path, especially for larger polygons,
-  consider S2 Geometry.
-- If you need many geometry types, coordinate systems, or generic geometry
-  algorithms, Boost.Geometry may be a better fit.
-- If you need spatial indexing, use S2, CGAL, or another dedicated spatial index.
-
-## API Reference
-
-See [docs/api.md](docs/api.md) for the full API reference.
+Ported from and API-compatible with the geometry utilities in Google Maps'
+[android-maps-utils](https://github.com/googlemaps/android-maps-utils) (Apache-2.0).
 
 ## Support
 
@@ -268,3 +335,9 @@ See [docs/api.md](docs/api.md) for the full API reference.
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+<sub>If this saved you a trip to Stack Overflow, consider <a href="https://github.com/gistrec/geo-utils-cpp">starring the repo</a> ⭐</sub>
+</div>
