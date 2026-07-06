@@ -17,11 +17,10 @@ _The lat/lng math you keep copy-pasting from Stack Overflow — as one clean hea
   <a href="https://github.com/gistrec/geo-utils-cpp/releases"><img src="https://img.shields.io/github/v/release/gistrec/geo-utils-cpp" alt="Latest release"></a>
 </p>
 
-<!-- Row 2 — try + get (registry version shields, not CI) -->
+<!-- Row 2 — get it (package registries) -->
 <p align="center">
-  <a href="https://godbolt.org/z/hx6W3WMsa"><img src="https://img.shields.io/badge/Compiler%20Explorer-try%20online-004080?logo=compilerexplorer&logoColor=white" alt="Try in Compiler Explorer"></a>
   <a href="https://vcpkg.io/en/package/geo-utils-cpp"><img src="https://img.shields.io/vcpkg/v/geo-utils-cpp?logo=cmake&logoColor=white" alt="vcpkg version"></a>
-  <a href="https://github.com/xmake-io/xmake-repo"><img src="https://img.shields.io/badge/xrepo-geo--utils--cpp-2C3E50" alt="xrepo package"></a>
+  <a href="https://github.com/xmake-io/xmake-repo/tree/master/packages/g/geo-utils-cpp"><img src="https://img.shields.io/badge/xrepo-geo--utils--cpp-2C3E50" alt="xrepo package"></a>
   <a href="https://cppget.org/libgeo-utils-cpp"><img src="https://img.shields.io/badge/build2-libgeo--utils--cpp-2C3E50" alt="build2 / cppget package"></a>
   <a href="https://github.com/conan-io/conan-center-index/pull/30152"><img src="https://img.shields.io/badge/Conan--Center-pending-9E9E9E?logo=conan&logoColor=white" alt="Conan Center (pending)"></a>
   <a href="https://github.com/mesonbuild/wrapdb/pull/2820"><img src="https://img.shields.io/badge/Meson%20WrapDB-pending-9E9E9E?logo=meson&logoColor=white" alt="Meson WrapDB (pending)"></a>
@@ -35,7 +34,7 @@ _The lat/lng math you keep copy-pasting from Stack Overflow — as one clean hea
 
 </div>
 
-<p align="center"><b>67M polygons/s (~1.9× Boost, ~5× S2) · 40M distance calls/s · 1.6–1.9× faster than S2 on <code>point_at_distance</code></b><br>
+<p align="center"><b>67M polygons/s on polygon <code>area</code> · 40M <code>distance</code> calls/s · ~1.6× faster than S2 on <code>point_at_distance</code></b><br>
 <sub><a href="#which-library-should-i-pick">→ see the numbers</a> · Apple M1 / clang 17 / <code>-O2 -DNDEBUG</code></sub></p>
 
 ---
@@ -186,9 +185,10 @@ the details.
 
 Native types are pre-built outside the timed loop, so the table compares algorithmic cost rather than
 object-construction overhead. `geo-utils-cpp` matches hand-written haversine and Boost.Geometry on
-simple spherical operations, is especially strong on `area`, and beats `S2Polyline::Interpolate` by
-1.6–1.9× on `point_at_distance`; S2 is faster on several other operations when conversion from lat/lng
-is excluded.
+simple spherical operations, is especially strong on `area`, and beats `S2Polyline::Interpolate` on
+`point_at_distance` by ≈1.6× at the N=100 route shown above (rising to ~1.9× for longer routes). S2 is
+faster on several other operations — notably `distance_between` — when the `lat/lng → S2Point`
+conversion is excluded.
 
 See [docs/benchmarks.md](docs/benchmarks.md) for full methodology, all operations, and when to use
 each library.
@@ -318,19 +318,15 @@ Full API reference: [docs/api.md](docs/api.md). New here? Start with
 [docs/getting-started.md](docs/getting-started.md). Performance details live in
 [docs/benchmarks.md](docs/benchmarks.md).
 
-## Contributing
+## Contributing & support
 
-Issues and pull requests are welcome —
+Questions, bug reports, and pull requests are all welcome —
 [open an issue](https://github.com/gistrec/geo-utils-cpp/issues) or send a PR.
 
 ## Credits
 
 Ported from and API-compatible with the geometry utilities in Google Maps'
 [android-maps-utils](https://github.com/googlemaps/android-maps-utils) (Apache-2.0).
-
-## Support
-
-[Please open an issue on GitHub](https://github.com/gistrec/geo-utils-cpp/issues)
 
 ## License
 
