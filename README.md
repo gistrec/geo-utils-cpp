@@ -4,7 +4,7 @@
 
 **Google Maps geometry, ported to modern C++ — in a single header.**
 
-_The lat/lng math you keep copy-pasting from Stack Overflow — as one clean header._
+_Stop hand-rolling haversine, polyline, and polygon math yourself._
 
 <!-- Row 1 — identity + trust -->
 <p align="center">
@@ -30,11 +30,9 @@ _The lat/lng math you keep copy-pasting from Stack Overflow — as one clean hea
 
 **▶ [Try it live in Compiler Explorer](https://godbolt.org/z/hx6W3WMsa)** — no install needed
 
-<sub>A runnable single-header build: distance, snap-to-route, and point-at-distance demos.</sub>
-
 </div>
 
-<p align="center"><b>67M polygons/s on polygon <code>area</code> · 40M <code>distance</code> calls/s · ~1.6× faster than S2 on <code>point_at_distance</code></b><br>
+<p align="center"><b>~1.9× Boost (~5× S2) on polygon <code>area</code> · on par with hand-tuned haversine on <code>distance</code> · 1.6–1.9× faster than S2 on <code>point_at_distance</code></b><br>
 <sub><a href="#which-library-should-i-pick">→ see the numbers</a> · Apple M1 / clang 17 / <code>-O2 -DNDEBUG</code></sub></p>
 
 ---
@@ -314,9 +312,9 @@ exposes `GEO_UTILS_CPP_VERSION` for `#if` compatibility checks.
 
 ## API reference
 
-Full API reference: [docs/api.md](docs/api.md). New here? Start with
-[docs/getting-started.md](docs/getting-started.md). Performance details live in
-[docs/benchmarks.md](docs/benchmarks.md).
+- 📖 **Full API reference** — [docs/api.md](docs/api.md)
+- 🚀 **New here?** — [docs/getting-started.md](docs/getting-started.md)
+- ⚡ **Performance details** — [docs/benchmarks.md](docs/benchmarks.md)
 
 ## Contributing & support
 
@@ -335,5 +333,5 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 ---
 
 <div align="center">
-<sub>If this saved you a trip to Stack Overflow, consider <a href="https://github.com/gistrec/geo-utils-cpp">starring the repo</a> ⭐</sub>
+<sub>If this saved you an afternoon, consider <a href="https://github.com/gistrec/geo-utils-cpp">starring the repo</a> ⭐</sub>
 </div>
