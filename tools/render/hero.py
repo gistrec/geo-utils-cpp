@@ -12,16 +12,15 @@ no geometry is recomputed in Python. Two outputs:
                                   collapses it -> an off-road GPS fix drops and
                                   snaps to the route -> an ETA marker glides
                                   500 m up the line, then holds.
-  docs/assets/gallery/simplify.gif  a focused Douglas-Peucker collapse across
-                                  the tolerance sweep in dp.jsonl.
 
-Both are deterministic (no basemap, matplotlib FuncAnimation -> PillowWriter,
-no external binary). matplotlib bundles FreeType 2.6.1 in its wheels and Agg
-is self-contained, so a pinned matplotlib (see requirements.txt) reproduces
-byte-identical gifs across machines -- which is what makes the CI drift-gate
-meaningful.
+It is deterministic (no basemap, matplotlib FuncAnimation -> PillowWriter, no
+external binary). matplotlib bundles FreeType 2.6.1 in its wheels and Agg is
+self-contained, so a pinned matplotlib (see requirements.txt) reproduces a
+byte-identical gif across machines. (The standalone Douglas-Peucker collapse,
+gallery/simplify.gif, now renders over real OSM tiles in gallery.py, so it is a
+hand-committed tile asset rather than a deterministic one.)
 
-Usage: tools/render/hero.py [--hero-only | --simplify-only]
+Usage: tools/render/hero.py
 """
 
 import argparse
@@ -41,7 +40,6 @@ from matplotlib.animation import FuncAnimation, PillowWriter  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent.parent
 DATA = ROOT / "docs" / "assets" / "data"
 OUT_HERO = ROOT / "docs" / "assets" / "hero-pipeline.gif"
-OUT_SIMPLIFY = ROOT / "docs" / "assets" / "gallery" / "simplify.gif"
 
 # Dark palette, tuned to read on both a light and a dark README canvas.
 BG = "#0d1117"
@@ -335,74 +333,9 @@ def render_hero(out_path):
     print(f"wrote {out_path}  ({total} frames @ {FPS} fps)")
 
 
-# --------------------------------------------------------------------------
-# standalone Douglas-Peucker collapse (docs/assets/gallery/simplify.gif)
-# --------------------------------------------------------------------------
-
-SIMPLIFY_HOLD = 5   # frames each tolerance is held
-SIMPLIFY_TAIL = 12  # extra hold on the coarsest frame
-SIMPLIFY_FPS = 12
-SIMPLIFY_FIGSIZE = (8.0, 4.5)  # -> 800 x 450 px
-
-
-def render_simplify(out_path):
-    scene = load_scene()
-    # dp.jsonl runs coarse -> fine; reverse it so the gif reads as a collapse:
-    # the detailed route sheds vertices as the tolerance grows.
-    frames = scene["dp_frames"][::-1]  # fine (many pts) -> coarse (few pts)
-    limits = compute_limits(scene)
-    fig = plt.figure(figsize=SIMPLIFY_FIGSIZE, dpi=DPI)
-    fig.patch.set_facecolor(BG)
-    ax = fig.add_axes([0, 0, 1, 1])
-
-    schedule = []
-    for i in range(len(frames)):
-        reps = SIMPLIFY_HOLD + (SIMPLIFY_TAIL if i == len(frames) - 1 else 0)
-        schedule.extend([i] * reps)
-
-    def update(k):
-        idx = schedule[k]
-        f = frames[idx]
-        pts = f["points"]
-        setup_axes(ax, scene, limits)
-        # Raw track faint underneath for reference.
-        ax.plot(xs(scene["track"]), ys(scene["track"]), color=TRACK, lw=1.2,
-                alpha=0.5, zorder=2)
-        ax.plot(xs(pts), ys(pts), color=GREEN, lw=2.6, solid_capstyle="round",
-                solid_joinstyle="round", zorder=5)
-        ax.plot(xs(pts), ys(pts), linestyle="none", marker="o", markersize=5,
-                markerfacecolor=GREEN, markeredgecolor=BG, markeredgewidth=0.8,
-                zorder=6)
-        x0, x1, y0, y1 = limits
-        ax.text(x0, y1 - (y1 - y0) * 0.05, "Douglas-Peucker simplify",
-                color=TEXT, fontsize=15, fontweight="bold", va="top", ha="left")
-        ax.text(x0, y0 + (y1 - y0) * 0.05,
-                f"tolerance {f['tolerance_m']:g} m   ->   "
-                f"{int(f['count'])} / {len(scene['track'])} pts",
-                color=CODE, fontsize=12, va="bottom", ha="left",
-                family="monospace")
-        return []
-
-    anim = FuncAnimation(fig, update, frames=len(schedule), blit=False)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    anim.save(str(out_path), writer=PillowWriter(fps=SIMPLIFY_FPS), dpi=DPI)
-    plt.close(fig)
-    print(f"wrote {out_path}  ({len(schedule)} frames @ {SIMPLIFY_FPS} fps)")
-
-
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--hero-only", action="store_true",
-                       help="render only hero-pipeline.gif")
-    group.add_argument("--simplify-only", action="store_true",
-                       help="render only gallery/simplify.gif")
-    args = parser.parse_args()
-
-    if not args.simplify_only:
-        render_hero(OUT_HERO)
-    if not args.hero_only:
-        render_simplify(OUT_SIMPLIFY)
+    argparse.ArgumentParser(description=__doc__).parse_args()
+    render_hero(OUT_HERO)
 
 
 if __name__ == "__main__":

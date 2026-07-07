@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2026 Aleksandr Kovalko
 # Licensed under the Apache License, Version 2.0
-"""Renders the four gallery stills (#5-#8) over real basemap tiles.
+"""Renders the gallery assets over real basemap tiles.
 
+  docs/assets/gallery/simplify.gif       (#4) the Douglas-Peucker collapse,
+                                          animated over Tampa-area OSM tiles
   docs/assets/gallery/great-circle.png   (#5) NY -> London geodesic arc
   docs/assets/gallery/snap-to-route.png  (#6) an off-road GPS fix snapped
   docs/assets/gallery/point-in-polygon.png (#7) a midtown box + points
@@ -10,10 +12,8 @@
 
 These fetch map tiles (OpenStreetMap via `staticmap`, Natural Earth via
 `cartopy`), so they are **NON-deterministic** -- the CI drift-gate deliberately
-skips them. Render locally and commit the PNGs by hand, exactly like the VHS
-`demo.gif`. The standalone Douglas-Peucker collapse (#4, gallery/simplify.gif)
-is deterministic and lives in hero.py instead, so the drift-gate can regenerate
-it.
+skips them. Render locally and commit the results by hand. (simplify.gif also
+needs matplotlib + numpy to animate the route over the fetched basemap.)
 
 Every scene draws geometry that geo-utils-cpp computed in C++: the track
 scenes read docs/assets/data/track.geojson (from tools/assets/emit.cpp); the
@@ -33,15 +33,22 @@ Usage: tools/render/gallery.py [--only great-circle|snap-to-route|...]
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DATA = ROOT / "docs" / "assets" / "data"
 OUT = ROOT / "docs" / "assets" / "gallery"
 
-# OpenStreetMap standard tiles -- attribution is mandatory (ODbL).
-OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-OSM_ATTRIB = "(c) OpenStreetMap contributors"
+# CARTO "Positron" (light) basemap: OSM data with CARTO styling, served from a
+# script-friendly CDN (the raw OSM tile server rejects bulk/script access with a
+# 404/403). Attribution to both is mandatory; a descriptive User-Agent keeps the
+# fetch within the tile usage policy.
+TILES = "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
+TILES_ATTRIB = "(c) OpenStreetMap contributors (c) CARTO"
+TILE_HEADERS = {
+    "User-Agent": "geo-utils-cpp-asset-pipeline (+https://github.com/gistrec/geo-utils-cpp)",
+}
 
 GREEN = "#2f9e44"
 FIX = "#e8590c"
@@ -64,7 +71,7 @@ def lnglat_to_latlng(coords):
     return [(c[1], c[0]) for c in coords]
 
 
-def add_attribution(image, text=OSM_ATTRIB):
+def add_attribution(image, text=TILES_ATTRIB):
     """Stamp a tile-attribution line along the bottom edge (PIL)."""
     from PIL import ImageDraw
     draw = ImageDraw.Draw(image, "RGBA")
@@ -73,6 +80,128 @@ def add_attribution(image, text=OSM_ATTRIB):
     draw.rectangle([0, h - box_h, w, h], fill=(255, 255, 255, 190))
     draw.text((6, h - box_h + 3), text, fill=(60, 60, 60))
     return image
+
+
+# --------------------------------------------------------------------------
+# #4 -- the Douglas-Peucker collapse animated over OSM tiles (simplify.gif)
+# --------------------------------------------------------------------------
+
+# Web-Mercator (slippy-map) helpers -- these match staticmap's own projection,
+# so a lat/lng lands on the exact pixel of a basemap that staticmap rendered.
+TILE_PX = 256
+
+
+def _lon_to_x(lon, zoom):
+    return (lon + 180.0) / 360.0 * (2 ** zoom)
+
+
+def _lat_to_y(lat, zoom):
+    r = math.radians(lat)
+    return (1.0 - math.log(math.tan(r) + 1.0 / math.cos(r)) / math.pi) / 2.0 * (2 ** zoom)
+
+
+def _fit_zoom(coords, width, height, pad_px, max_zoom=18):
+    """Largest zoom at which the track bbox fits inside width x height (minus pad)."""
+    lngs = [c[0] for c in coords]
+    lats = [c[1] for c in coords]
+    for zoom in range(max_zoom, 0, -1):
+        span_x = (_lon_to_x(max(lngs), zoom) - _lon_to_x(min(lngs), zoom)) * TILE_PX
+        span_y = (_lat_to_y(min(lats), zoom) - _lat_to_y(max(lats), zoom)) * TILE_PX
+        if span_x <= width - 2 * pad_px and span_y <= height - 2 * pad_px:
+            return zoom
+    return 1
+
+
+def render_simplify_gif(out_path):
+    """#4: geo::simplify's Douglas-Peucker collapse animated over real tiles.
+
+    Fetches one OSM basemap for the whole track, then animates the dp.jsonl
+    tolerance sweep (fine -> coarse) as a brand-green route with a white casing
+    for legibility. Non-deterministic (the basemap is fetched), committed by hand.
+    """
+    import numpy as np
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation, PillowWriter
+    from staticmap import StaticMap
+
+    feats = load_track()
+    track = feats["track"]["geometry"]["coordinates"]           # [[lng, lat], ...]
+    n_raw = int(feats["track"]["properties"]["count"])
+    dp_frames = [json.loads(ln) for ln in
+                 (DATA / "dp.jsonl").read_text().splitlines() if ln.strip()]
+    # dp.jsonl runs coarse -> fine; reverse so the gif reads as a collapse.
+    frames = dp_frames[::-1]
+
+    W, H, PAD = 800, 560, 70
+    zoom = _fit_zoom(track, W, H, PAD)
+    center = [(min(c[0] for c in track) + max(c[0] for c in track)) / 2.0,
+              (min(c[1] for c in track) + max(c[1] for c in track)) / 2.0]
+
+    # Fetch the basemap once, centred on the track (no features -> clean tiles).
+    m = StaticMap(W, H, url_template=TILES, headers=TILE_HEADERS)
+    base = m.render(zoom=zoom, center=center)
+    add_attribution(base)
+    base_arr = np.asarray(base.convert("RGB"))
+
+    xc = _lon_to_x(center[0], zoom)
+    yc = _lat_to_y(center[1], zoom)
+
+    def to_px(pt):
+        px = W / 2.0 + (_lon_to_x(pt[0], zoom) - xc) * TILE_PX
+        py = H / 2.0 + (_lat_to_y(pt[1], zoom) - yc) * TILE_PX
+        return px, py
+
+    track_px = [to_px(p) for p in track]
+
+    # Hold each tolerance a few frames; linger on the coarsest result.
+    HOLD, TAIL = 5, 16
+    schedule = []
+    for i in range(len(frames)):
+        schedule += [i] * (HOLD + (TAIL if i == len(frames) - 1 else 0))
+
+    fig = plt.figure(figsize=(W / 100.0, H / 100.0), dpi=100)
+    ax = fig.add_axes([0, 0, 1, 1])
+
+    def chip(x, y, s):
+        ax.text(x, y, s, va="top", ha="left", fontsize=12.5, color="#111111",
+                family="DejaVu Sans", zorder=8,
+                bbox=dict(boxstyle="round,pad=0.32", fc="white", ec="none",
+                          alpha=0.86))
+
+    def update(k):
+        f = frames[schedule[k]]
+        pts_px = [to_px(p) for p in f["points"]]
+        rx = [p[0] for p in pts_px]
+        ry = [p[1] for p in pts_px]
+        ax.clear()
+        ax.imshow(base_arr, extent=[0, W, H, 0], zorder=0, interpolation="bilinear")
+        ax.set_xlim(0, W)
+        ax.set_ylim(H, 0)
+        ax.set_axis_off()
+        # Raw track, faint, underneath.
+        ax.plot([p[0] for p in track_px], [p[1] for p in track_px],
+                color="#495057", lw=1.6, alpha=0.45, zorder=2,
+                solid_capstyle="round")
+        # Simplified route: white casing + brand green on top.
+        ax.plot(rx, ry, color="white", lw=6.0, alpha=0.9, zorder=3,
+                solid_capstyle="round", solid_joinstyle="round")
+        ax.plot(rx, ry, color=GREEN, lw=3.2, zorder=4,
+                solid_capstyle="round", solid_joinstyle="round")
+        ax.plot(rx, ry, linestyle="none", marker="o", markersize=6,
+                markerfacecolor=GREEN, markeredgecolor="white",
+                markeredgewidth=1.2, zorder=5)
+        chip(14, 14, "geo::simplify  --  Douglas-Peucker")
+        chip(14, 44,
+             f"tolerance {f['tolerance_m']:g} m   ->   {int(f['count'])} / {n_raw} pts")
+        return []
+
+    anim = FuncAnimation(fig, update, frames=len(schedule), blit=False)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    anim.save(str(out_path), writer=PillowWriter(fps=10), dpi=100)
+    plt.close(fig)
+    print(f"wrote {out_path}  ({len(schedule)} frames over OSM tiles, zoom {zoom})")
 
 
 # --------------------------------------------------------------------------
@@ -89,7 +218,7 @@ def render_snap_to_route(out_path):
     snapped = feats["snapped"]["geometry"]["coordinates"]
     dist = feats["snapped"]["properties"]["distance_m"]
 
-    m = StaticMap(1000, 700, url_template=OSM_TILES)
+    m = StaticMap(1000, 700, url_template=TILES, headers=TILE_HEADERS)
     m.add_line(Line(route, GREEN, 5))
     m.add_line(Line([fix, snapped], FIX, 2))          # the snap link
     m.add_marker(CircleMarker(fix, FIX, 12))          # off-road fix
@@ -108,7 +237,7 @@ def render_encode_decode(out_path):
     track = feats["track"]["geometry"]["coordinates"]
     n = int(feats["track"]["properties"]["count"])
 
-    m = StaticMap(1000, 700, url_template=OSM_TILES)
+    m = StaticMap(1000, 700, url_template=TILES, headers=TILE_HEADERS)
     m.add_line(Line(track, BLUE, 4))
     m.add_marker(CircleMarker(track[0], GREEN, 12))
     m.add_marker(CircleMarker(track[-1], RED, 12))
@@ -141,7 +270,7 @@ def render_point_in_polygon(out_path):
     """#7: a midtown box with points coloured by geo::contains."""
     from staticmap import StaticMap, Line, CircleMarker
 
-    m = StaticMap(1000, 800, url_template=OSM_TILES)
+    m = StaticMap(1000, 800, url_template=TILES, headers=TILE_HEADERS)
     ring = list(MIDTOWN) + [MIDTOWN[0]]
     m.add_line(Line(ring, GREEN, 4))
     for _name, lng, lat, inside in PIP_POINTS:
@@ -199,6 +328,7 @@ def render_great_circle(out_path):
 # --------------------------------------------------------------------------
 
 STILLS = {
+    "simplify": ("simplify.gif", render_simplify_gif),
     "great-circle": ("great-circle.png", render_great_circle),
     "snap-to-route": ("snap-to-route.png", render_snap_to_route),
     "point-in-polygon": ("point-in-polygon.png", render_point_in_polygon),

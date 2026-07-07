@@ -5,12 +5,12 @@
 # extracted by the pinned fonttools (no dependency on installed fonts), and a
 # fixed svg.hashsalt + metadata={"Date": None} strip the remaining nondeterminism.
 #
-# The rasters/GIFs (hero-pipeline.gif, gallery/simplify.gif, social-preview.png)
-# and the emitter's GeoJSON/JSONL are regenerated here as a SMOKE TEST -- they
+# The raster + hero GIF (hero-pipeline.gif, social-preview.png) and the emitter's
+# GeoJSON/JSONL are regenerated here as a SMOKE TEST -- they
 # must build and render without error -- but are deliberately NOT byte-diffed:
 # byte-exact matplotlib Agg raster reproduction across independently-provisioned
-# runners is unreliable, so like demo.gif and the gallery tile stills they are
-# committed by hand. Regenerate everything with 'bash tools/make-assets.sh'.
+# runners is unreliable, so like the gallery tile stills they are committed by
+# hand. Regenerate everything with 'bash tools/make-assets.sh'.
 #
 # Runs on macOS (arm64) on purpose: the committed SVG's glyph outlines come from
 # the pinned matplotlib/fonttools wheels, matching the platform the assets were
@@ -60,7 +60,7 @@ jobs:
       - name: Regenerate the assets (smoke-test the renderers)
         run: |
           python tools/render/bench.py     # benchmarks.svg  (byte-gated below)
-          python tools/render/hero.py      # hero-pipeline.gif + gallery/simplify.gif
+          python tools/render/hero.py      # hero-pipeline.gif
           python tools/render/social.py    # social-preview.png
 
       - name: Fail on benchmarks.svg drift

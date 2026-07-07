@@ -7,11 +7,11 @@
 # geo-math lives in tools/assets/emit.cpp; the Python scripts only draw.
 #
 # Stages are split by reproducibility:
-#   DETERMINISTIC (drift-gated in CI): the emitter data, benchmarks.svg,
-#       hero-pipeline.gif, gallery/simplify.gif, social-preview.png.
-#   MANUAL (committed by hand, NOT gated): demo.gif (VHS terminal capture) and
-#       the four gallery/*.png stills (fetch map tiles). Pass --all to also
-#       regenerate these when the tools and network are available.
+#   BYTE-GATED IN CI: benchmarks.svg only (platform-independent SVG).
+#   RENDERED, HAND-COMMITTED (deterministic): the emitter data,
+#       hero-pipeline.gif and social-preview.png -- rendered but not byte-gated.
+#   TILE RENDERS (non-deterministic, need network): gallery/simplify.gif and
+#       the four gallery/*.png stills. Pass --all to regenerate when network is up.
 #
 # Usage:
 #   bash tools/make-assets.sh          # emitter + deterministic renders
@@ -52,24 +52,19 @@ echo "    docs/assets/data/{track.geojson, dp.jsonl, eta.jsonl}"
 
 echo "==> [3/4] deterministic renders  (matplotlib)"
 "$PYTHON" tools/render/bench.py    # -> docs/assets/benchmarks.svg
-"$PYTHON" tools/render/hero.py     # -> hero-pipeline.gif + gallery/simplify.gif
+"$PYTHON" tools/render/hero.py     # -> hero-pipeline.gif
 "$PYTHON" tools/render/social.py   # -> docs/assets/social-preview.png
 
-echo "==> [4/4] non-deterministic renders"
+echo "==> [4/4] tile renders  (non-deterministic, committed by hand)"
 if $want_all; then
-    if command -v vhs >/dev/null 2>&1; then
-        vhs docs/assets/demo.tape
-    else
-        echo "    skip demo.gif: vhs not installed (brew install vhs ttyd ffmpeg)"
-    fi
     "$PYTHON" tools/render/gallery.py || true
 else
     echo "    skipped (pass --all to regenerate). By hand:"
-    echo "      demo.gif   : vhs docs/assets/demo.tape                 (needs vhs)"
-    echo "      gallery/*  : $PYTHON tools/render/gallery.py           (needs staticmap/cartopy + network)"
+    echo "      gallery/*  : $PYTHON tools/render/gallery.py   (simplify.gif + stills; needs staticmap/cartopy + network)"
 fi
 
 echo
 echo "Done."
-echo "  deterministic (CI drift-gated): data/*, benchmarks.svg, hero-pipeline.gif, gallery/simplify.gif, social-preview.png"
-echo "  manual (committed by hand):     demo.gif, gallery/*.png"
+echo "  byte-gated in CI:               benchmarks.svg"
+echo "  rendered here (hand-committed): data/*, hero-pipeline.gif, social-preview.png"
+echo "  needs --all + network:          gallery/simplify.gif + gallery/*.png stills"
