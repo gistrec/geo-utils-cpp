@@ -32,7 +32,7 @@ _Stop hand-rolling haversine, polyline, and polygon math yourself._
 
 </div>
 
-<p align="center"><b>~1.9× Boost (~5× S2) on polygon <code>area</code> · on par with hand-tuned haversine on <code>distance</code> · 1.6–1.9× faster than S2 on <code>point_at_distance</code></b><br>
+<p align="center"><b>~1.9× Boost (~5× S2) on <code>area</code> · 1.6–1.9× faster than S2 on <code>point_at_distance</code></b><br>
 <sub><a href="#which-library-should-i-pick">→ see the numbers</a> · Apple M1 / clang 17 / <code>-O2 -DNDEBUG</code></sub></p>
 
 ---
