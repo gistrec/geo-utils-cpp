@@ -10,6 +10,7 @@
 #   - sanitizers: the same test suite under ASan + UBSan (clang)
 #   - single-header: generate the amalgamation and build the example with it
 #   - fuzz-smoke: a short libFuzzer run over geo::decode (clang)
+#   - meson: configure the native Meson build and run the example as a smoke test
 #
 # Triggered automatically on push/PR to master/main; can also be run manually
 # from the Actions tab in GitHub UI.
@@ -160,3 +161,25 @@ jobs:
 
       - name: Fuzz
         run: ./build-fuzz/tests/fuzz/geo_utils_cpp_fuzz_decode -max_total_time=60 -print_final_stats=1
+
+  # Native Meson build. Keeps meson.build from drifting out of sync with the
+  # header layout: a standalone configure builds the self-verifying gps_track
+  # example, which `meson test` then runs as an end-to-end smoke test.
+  meson:
+    name: meson-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Meson + Ninja
+        run: pip install meson ninja
+
+      - name: Setup
+        run: meson setup build-meson
+
+      - name: Test
+        run: meson test -C build-meson --print-errorlogs
