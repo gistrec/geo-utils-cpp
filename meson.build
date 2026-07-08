@@ -11,7 +11,7 @@
 project(
   'geo-utils-cpp',
   'cpp',
-  version: '1.2.1',
+  version: '1.2.2',
   license: 'Apache-2.0',
   default_options: ['cpp_std=c++17'],
   meson_version: '>=0.56.0',

@@ -203,7 +203,7 @@ include(FetchContent)
 FetchContent_Declare(
     GeoUtilsCpp
     GIT_REPOSITORY https://github.com/gistrec/geo-utils-cpp.git
-    GIT_TAG        v1.2.1
+    GIT_TAG        v1.2.2
 )
 FetchContent_MakeAvailable(GeoUtilsCpp)
 
@@ -237,7 +237,7 @@ target("your_target")
 ### Conan
 
 ```sh
-conan install --requires=geo-utils-cpp/1.2.1 --build=missing
+conan install --requires=geo-utils-cpp/1.2.2 --build=missing
 ```
 
 Conan Center support is pending
@@ -254,7 +254,7 @@ Conan Center support is pending
 Add the dependency to your package's `manifest`:
 
 ```
-depends: libgeo-utils-cpp ^1.2.1
+depends: libgeo-utils-cpp ^1.2.2
 ```
 
 And in the consuming `buildfile`:
@@ -287,7 +287,7 @@ With any of the above methods (vcpkg, xrepo, Conan, FetchContent, or a
 system `find_package`), wire it into your build with:
 
 ```cmake
-find_package(GeoUtilsCpp 1.2.1 REQUIRED)
+find_package(GeoUtilsCpp 1.2.2 REQUIRED)
 target_link_libraries(your_target PRIVATE geo::utils)
 ```
 

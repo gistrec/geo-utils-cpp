@@ -698,9 +698,9 @@ the library version for compile-time feature detection:
 
 | Macro | Example | Description |
 |---|---|---|
-| `GEO_UTILS_CPP_VERSION_MAJOR` / `_MINOR` / `_PATCH` | `1` / `2` / `1` | version components |
-| `GEO_UTILS_CPP_VERSION` | `10201` | `major·10000 + minor·100 + patch`, usable in `#if` |
-| `GEO_UTILS_CPP_VERSION_STRING` | `"1.2.1"` | dotted string |
+| `GEO_UTILS_CPP_VERSION_MAJOR` / `_MINOR` / `_PATCH` | `1` / `2` / `2` | version components |
+| `GEO_UTILS_CPP_VERSION` | `10202` | `major·10000 + minor·100 + patch`, usable in `#if` |
+| `GEO_UTILS_CPP_VERSION_STRING` | `"1.2.2"` | dotted string |
 
 ```cpp
 #include <geo/version.hpp>
