@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.2.2
+
+Tooling-only release: adds a native Meson build so the library can be
+consumed as a Meson subproject or WrapDB wrap. The library itself is
+unchanged — headers are identical to v1.2.1 apart from the version
+macros, so existing consumers have nothing to update.
+
+### Added
+
+- **Native Meson build** (`meson.build` + `meson_options.txt`): a
+  header-only `declare_dependency` with `meson.override_dependency`, header
+  installation via `install_subdir`, and the self-verifying
+  `examples/gps_track.cpp` wired up as a smoke test — built standalone (or
+  on `-Dtests=enabled`) and skipped when the library is pulled in as a
+  subproject. A `meson-build` CI job runs it so the build can't drift out
+  of sync with the header layout.
+
+### Unchanged (downstream-compatible)
+
+- Every header except the `<geo/version.hpp>` macros is byte-identical to
+  v1.2.1; no API, behavior, or packaging changes.
+
 ## v1.2.1
 
 Tooling-only release: ships the single-header amalgamation as a release
