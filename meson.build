@@ -28,6 +28,7 @@ meson.override_dependency('geo-utils-cpp', geo_utils_cpp_dep)
 install_subdir(
   'include/geo',
   install_dir: get_option('includedir'),
+  exclude_files: ['buildfile'],
 )
 
 # Build the example only when standalone (or explicitly asked), so downstream

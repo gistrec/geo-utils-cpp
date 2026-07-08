@@ -119,6 +119,7 @@ include(GNUInstallDirs)
 
 install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.hpp"
 )
 install(TARGETS geo_utils_cpp
     EXPORT GeoUtilsCppTargets
