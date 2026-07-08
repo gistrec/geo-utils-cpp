@@ -1,0 +1,6 @@
+option(
+  'tests',
+  type: 'feature',
+  value: 'auto',
+  description: 'Build the self-verifying example (examples/gps_track.cpp) as a smoke test',
+)
