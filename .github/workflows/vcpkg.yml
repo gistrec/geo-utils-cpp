@@ -55,11 +55,18 @@ jobs:
       # origin/master to make sure the geo-utils-cpp port is present and
       # current. fetch+reset (rather than `pull --ff-only`) is robust against
       # the runner image leaving HEAD detached or off master — the runner is
-      # disposable, so a hard reset is safe.
+      # disposable, so a hard reset is safe. The bundled vcpkg *binary* also
+      # lags the synced scripts (e.g. "vcpkg-tools.json schema version 2 is not
+      # supported"), so re-bootstrap to fetch a binary matching the checkout.
       - name: Sync vcpkg registry
         run: |
           git -C "$VCPKG_INSTALLATION_ROOT" fetch --depth=1 origin master
           git -C "$VCPKG_INSTALLATION_ROOT" reset --hard FETCH_HEAD
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            "$VCPKG_INSTALLATION_ROOT/bootstrap-vcpkg.bat" -disableMetrics
+          else
+            "$VCPKG_INSTALLATION_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          fi
 
       - name: Install geo-utils-cpp via vcpkg
         run: |
