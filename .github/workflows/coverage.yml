@@ -30,7 +30,7 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Resolve runner image version (cache key)
         id: image
@@ -38,7 +38,7 @@ jobs:
         run: echo "version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
 
       - name: Cache FetchContent dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build-cmake/_deps
           # Include repo name in the key so a repo rename (which changes the
@@ -72,7 +72,7 @@ jobs:
       # Codecov errors should not block CI.
       - name: Upload coverage to Codecov
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml

@@ -23,7 +23,7 @@ jobs:
     env:
       TAG: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Generate the single header
         run: python3 tools/amalgamate.py -o geo.hpp

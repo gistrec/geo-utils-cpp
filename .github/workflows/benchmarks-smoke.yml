@@ -35,7 +35,7 @@ jobs:
     name: smoke-build (ubuntu)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Configure
         run: cmake -S . -B build-bench -DGEO_UTILS_CPP_BUILD_BENCHMARKS=ON -DGEO_UTILS_CPP_BUILD_TESTS=OFF -DGEO_UTILS_CPP_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release

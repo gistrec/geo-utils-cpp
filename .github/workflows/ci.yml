@@ -64,7 +64,7 @@ jobs:
       CXX: ${{ matrix.cxx }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Resolve runner image version (cache key)
         id: image
@@ -72,7 +72,7 @@ jobs:
         run: echo "version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
 
       - name: Cache FetchContent dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build-cmake/_deps
           # Include repo name in the key so a repo rename (which changes the
@@ -102,7 +102,7 @@ jobs:
       CC: clang
       CXX: clang++
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Configure
         run: >
@@ -127,7 +127,7 @@ jobs:
     name: single-header-smoke
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Generate and smoke-test
         run: |
@@ -148,7 +148,7 @@ jobs:
       CC: clang
       CXX: clang++
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Configure
         run: >
@@ -169,9 +169,9 @@ jobs:
     name: meson-build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
