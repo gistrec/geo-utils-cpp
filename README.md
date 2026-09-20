@@ -23,7 +23,7 @@ _Stop hand-rolling haversine, polyline, and polygon math yourself._
   <a href="https://github.com/xmake-io/xmake-repo/tree/master/packages/g/geo-utils-cpp"><img src="https://img.shields.io/badge/xrepo-geo--utils--cpp-2C3E50" alt="xrepo package"></a>
   <a href="https://cppget.org/libgeo-utils-cpp"><img src="https://img.shields.io/badge/build2-libgeo--utils--cpp-2C3E50" alt="build2 / cppget package"></a>
   <a href="https://github.com/conan-io/conan-center-index/pull/30152"><img src="https://img.shields.io/badge/Conan--Center-pending-9E9E9E?logo=conan&logoColor=white" alt="Conan Center (pending)"></a>
-  <a href="https://github.com/mesonbuild/wrapdb/pull/2820"><img src="https://img.shields.io/badge/Meson%20WrapDB-pending-9E9E9E?logo=meson&logoColor=white" alt="Meson WrapDB (pending)"></a>
+  <a href="https://github.com/gistrec/geo-utils-cpp/blob/master/meson.build"><img src="https://img.shields.io/badge/Meson-supported-2C3E50?logo=meson&logoColor=white" alt="Meson build"></a>
 </p>
 
 <!-- ASSET: docs/assets/hero-pipeline.gif (hero, width=1000) -->
@@ -211,7 +211,7 @@ target_link_libraries(your_target PRIVATE geo::utils)
 ```
 
 <details>
-<summary><b>Other package managers</b> — vcpkg · xrepo · Conan · build2 · single-header · CMake wiring</summary>
+<summary><b>Other package managers</b> — vcpkg · xrepo · Conan · Meson · build2 · single-header · CMake wiring</summary>
 
 ### vcpkg
 
@@ -242,6 +242,34 @@ conan install --requires=geo-utils-cpp/1.2.2 --build=missing
 
 Conan Center support is pending
 [conan-io/conan-center-index#30152](https://github.com/conan-io/conan-center-index/pull/30152)
+
+### Meson
+
+The repository ships a native [`meson.build`](meson.build), so it works as a
+Meson subproject with no WrapDB entry. Drop this into
+`subprojects/geo-utils-cpp.wrap`:
+
+```ini
+[wrap-file]
+directory = geo-utils-cpp-1.2.2
+source_url = https://github.com/gistrec/geo-utils-cpp/archive/v1.2.2.tar.gz
+source_filename = geo-utils-cpp-1.2.2.tar.gz
+source_hash = 2ecc7726c73d7565e7820feafd944fc3d1800f586ca79e8b8b7fdb67a7ae2274
+
+[provide]
+geo-utils-cpp = geo_utils_cpp_dep
+```
+
+And consume it from your `meson.build`:
+
+```meson
+geo_utils_cpp = dependency('geo-utils-cpp')
+
+executable('your_target', 'main.cpp', dependencies: geo_utils_cpp)
+```
+
+The library is header-only, so the subproject compiles nothing of its own: the
+example smoke test is skipped automatically when built as a subproject.
 
 ### build2 / bpkg
 
