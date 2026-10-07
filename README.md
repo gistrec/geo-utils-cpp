@@ -6,6 +6,8 @@
 
 _Stop hand-rolling haversine, polyline, and polygon math yourself._
 
+**[▶ Live demo](https://gistrec.github.io/geo-utils-cpp/)** — the library compiled to WebAssembly, running in your browser.
+
 <!-- Row 1 — identity + trust -->
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17">

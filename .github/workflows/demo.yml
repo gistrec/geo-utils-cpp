@@ -1,0 +1,61 @@
+name: Demo (GitHub Pages)
+
+on:
+  push:
+    branches: [master]
+    paths: ['demo/**', 'include/**', '.github/workflows/demo.yml']
+  pull_request:
+    paths: ['demo/**', 'include/**', '.github/workflows/demo.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: mymindstorm/setup-emsdk@v16
+        with:
+          version: 6.0.11
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Build native reference
+        run: |
+          c++ -std=c++17 -Wall -Wextra -pedantic -Iinclude demo/test/native_ref.cpp -o native_ref
+          ./native_ref > expected.json
+
+      - name: Build WebAssembly
+        run: demo/build.sh
+
+      - name: Cross-check WASM against native
+        run: node demo/test/verify.mjs expected.json
+
+      - name: Report size
+        run: ls -l demo/web/geo.wasm demo/web/geo.js
+
+      - uses: actions/upload-pages-artifact@v5
+        if: github.event_name != 'pull_request'
+        with:
+          path: demo/web
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
