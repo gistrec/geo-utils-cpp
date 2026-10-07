@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>geo-utils-cpp — live demo</title>
 <meta name="description" content="Interactive demo of geo-utils-cpp, a header-only C++17 geodesy library, compiled to WebAssembly. Every number on this page is computed by the C++ code in your browser.">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <style>
   :root { --bg:#fafafa; --fg:#1b1f23; --muted:#5b6570; --card:#fff; --line:#d8dee4; --accent:#0b6bcb; --ok:#1a7f37; --bad:#cf222e; --code:#f3f5f7; }
   @media (prefers-color-scheme: dark) {
@@ -63,7 +63,7 @@
 </main>
 <footer>Map © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors. Distances are on a sphere of radius 6 371 009 m, like Google Maps geometry.</footer>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="vendor/leaflet/leaflet.js"></script>
 <script type="module">
 const $ = (sel, root = document) => root.querySelector(sel);
 const fmtM = (m) => m >= 10000 ? (m / 1000).toFixed(2) + ' km' : m.toFixed(1) + ' m';
@@ -216,7 +216,7 @@ std::string s6 = geo::encode(pts, 6);                         // polyline6`,
   bind(s, root, update) {
     $('#prec', root).value = String(s.prec);
     $('#enc', root).oninput = (e) => { s.text = e.target.value; };
-    $('#prec', root).onchange = (e) => { s.prec = +e.target.value; update(); };
+    $('#prec', root).onchange = (e) => { s.prec = +e.target.value; if (s.text.trim()) this.runDecode(s); update(); };
     $('#dec', root).onclick = () => { this.runDecode(s); update(); };
     $('#ex5', root).onclick = () => { s.text = EX5; s.prec = 5; this.runDecode(s); select(current); };
     $('#ex6', root).onclick = () => { s.prec = 6; s.text = g.encode([37.7749, -122.4194, 37.8044, -122.2712, 37.8716, -122.2727, 38.5816, -121.4944], 6); this.runDecode(s); select(current); };

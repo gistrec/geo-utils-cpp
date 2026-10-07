@@ -3,8 +3,8 @@
 An interactive map page where every number is computed by the C++ library compiled to
 WebAssembly: distance & bearing, offset, geofence (point-in-polygon), polyline
 encode/decode (precision 5 and 6), Douglas–Peucker simplify, snap-to-route, and spherical area.
-Client-side only: no backend, no API keys, no trackers. Map tiles come from OpenStreetMap
-and Leaflet from unpkg.
+Client-side only: no backend, no API keys, no trackers. Map tiles come from OpenStreetMap;
+Leaflet 1.9.4 (BSD-2) is vendored in `web/vendor/leaflet/`, so the only external request is for tiles.
 
 ## Layout
 

@@ -41,11 +41,18 @@ const actual = {
 let bad = 0;
 for (const [key, want] of Object.entries(expected)) {
   const got = actual[key];
-  const a = Array.isArray(want) ? want : [want];
-  const b = Array.isArray(got) ? got : [got];
-  const diff = typeof want === 'string' ? (want === got ? 0 : Infinity)
-    : Math.max(a.length === b.length ? 0 : Infinity, ...a.map((x, i) => Math.abs(x - b[i])));
-  const ok = diff <= 1e-9 * Math.max(1, ...a.map(Math.abs));
+  let ok, diff;
+  if (typeof want === 'string') {
+    ok = want === got;
+    diff = ok ? 0 : `"${want}" != "${got}"`;
+  } else {
+    const a = Array.isArray(want) ? want : [want];
+    const b = Array.isArray(got) ? got : [got];
+    diff = a.length === b.length ? Math.max(...a.map((x, i) => Math.abs(x - b[i]))) : Infinity;
+    // Native and WASM run the same C++ (libm sin/cos/asin may differ in the last ulps).
+    // Tolerance is relative to the magnitude, so km-scale areas are not held to nanometers.
+    ok = diff <= 1e-9 * Math.max(1, ...a.map(Math.abs));
+  }
   if (!ok) bad++;
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${key.padEnd(20)} max|Δ| = ${diff}`);
 }
