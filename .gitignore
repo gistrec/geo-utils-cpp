@@ -50,3 +50,7 @@ Thumbs.db
 
 # Tool sessions
 .claude/
+
+# WebAssembly demo build output (see demo/README.md)
+demo/web/geo.js
+demo/web/geo.wasm

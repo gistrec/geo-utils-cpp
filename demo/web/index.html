@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>geo-utils-cpp — live demo</title>
+<meta name="description" content="Interactive demo of geo-utils-cpp, a header-only C++17 geodesy library, compiled to WebAssembly. Every number on this page is computed by the C++ code in your browser.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root { --bg:#fafafa; --fg:#1b1f23; --muted:#5b6570; --card:#fff; --line:#d8dee4; --accent:#0b6bcb; --ok:#1a7f37; --bad:#cf222e; --code:#f3f5f7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12161a; --fg:#e6e9ec; --muted:#97a3ae; --card:#1a2025; --line:#2c353d; --accent:#58a6ff; --ok:#3fb950; --bad:#ff7b72; --code:#0f1317; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding:14px 16px 8px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline; }
+  header h1 { margin:0; font-size:18px; }
+  header p { margin:0; color:var(--muted); flex:1 1 320px; }
+  header a { color:var(--accent); }
+  nav { display:flex; gap:4px; padding:0 12px; overflow-x:auto; border-bottom:1px solid var(--line); }
+  nav button { flex:none; border:0; background:none; color:var(--muted); padding:9px 11px; cursor:pointer; font:inherit; border-bottom:2px solid transparent; }
+  nav button[aria-selected=true] { color:var(--fg); border-color:var(--accent); font-weight:600; }
+  main { display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:12px; padding:12px; }
+  #map { height:calc(100vh - 150px); min-height:380px; border:1px solid var(--line); border-radius:8px; }
+  aside { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px 14px; overflow:auto; max-height:calc(100vh - 150px); }
+  aside h2 { margin:0 0 4px; font-size:15px; }
+  .desc { color:var(--muted); margin:0 0 10px; }
+  label { display:block; margin:8px 0 2px; color:var(--muted); font-size:12px; }
+  input[type=range] { width:100%; }
+  textarea, select, input[type=text] { width:100%; font:12px ui-monospace, Menlo, monospace; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); }
+  textarea { min-height:64px; resize:vertical; }
+  .row { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+  button.b { border:1px solid var(--line); background:var(--bg); color:var(--fg); border-radius:6px; padding:5px 10px; cursor:pointer; font:inherit; }
+  button.b:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .out { background:var(--code); border-radius:6px; padding:8px 10px; margin:10px 0; font:12.5px ui-monospace, Menlo, monospace; white-space:pre-wrap; word-break:break-word; }
+  .inside { color:var(--ok); font-weight:600; } .outside { color:var(--bad); font-weight:600; }
+  .err { color:var(--bad); }
+  .fn { margin:12px 0 4px; font-size:12px; color:var(--muted); }
+  pre.code { background:var(--code); border-radius:6px; padding:8px 10px; margin:0; overflow-x:auto; font:12px/1.4 ui-monospace, Menlo, monospace; }
+  #loading { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:var(--bg); z-index:2000; }
+  .spin { width:34px; height:34px; border:4px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:s 0.8s linear infinite; }
+  @keyframes s { to { transform:rotate(360deg); } }
+  footer { padding:4px 16px 18px; color:var(--muted); font-size:12px; }
+  @media (max-width: 820px) {
+    main { grid-template-columns:1fr; }
+    #map { height:52vh; }
+    aside { max-height:none; }
+  }
+</style>
+</head>
+<body>
+<div id="loading"><div class="spin"></div><div id="loading-msg">Loading WebAssembly…</div></div>
+
+<header>
+  <h1>geo-utils-cpp</h1>
+  <p>Header-only C++17 geodesy, compiled to WebAssembly. Every number below is computed by the C++ library in your browser — no server, no tracking. <a href="https://github.com/gistrec/geo-utils-cpp">GitHub</a> · <span id="ver"></span></p>
+</header>
+<nav id="tabs" role="tablist"></nav>
+<main>
+  <div id="map"></div>
+  <aside id="panel"></aside>
+</main>
+<footer>Map © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors. Distances are on a sphere of radius 6 371 009 m, like Google Maps geometry.</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script type="module">
+const $ = (sel, root = document) => root.querySelector(sel);
+const fmtM = (m) => m >= 10000 ? (m / 1000).toFixed(2) + ' km' : m.toFixed(1) + ' m';
+const fmtA = (m2) => m2 >= 1e6 ? (m2 / 1e6).toFixed(3) + ' km²' : m2.toFixed(1) + ' m²';
+const flat = (pts) => pts.flatMap((p) => [p.lat, p.lng]);
+const unflat = (a) => { const r = []; for (let i = 0; i + 1 < a.length; i += 2) r.push(L.latLng(a[i], a[i + 1])); return r; };
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+let g;
+try {
+  const mod = await import('./geo.js');
+  g = await mod.default();
+} catch (e) {
+  console.error(e);
+  $('#loading-msg').innerHTML = 'Could not load <code>geo.wasm</code>.<br>Serve this folder over HTTP (<code>python3 -m http.server</code>) — browsers block WebAssembly modules on <code>file://</code>.';
+  $('.spin').remove();
+  throw e;
+}
+$('#ver').textContent = 'v' + g.version();
+$('#loading').remove();
+
+const map = L.map('map', { worldCopyJump: true }).setView([37.78, -122.42], 11);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+let layer = L.layerGroup().addTo(map);
+
+// Great-circle polyline between two points, sampled with geo::interpolate.
+function arc(a, b, n = 64) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) { const r = g.interpolate(a.lat, a.lng, b.lat, b.lng, i / n); pts.push(L.latLng(r[0], r[1])); }
+  return pts;
+}
+const dot = (p, color = '#0b6bcb', r = 6) => L.circleMarker(p, { radius: r, color, fillColor: color, fillOpacity: 0.9, weight: 2 });
+const wrapLL = (ll) => ll.wrap();
+
+const tabs = [];
+let current = null;
+
+// ---------------------------------------------------------------- 1. Distance & bearing
+tabs.push({
+  id: 'distance', title: 'Distance & bearing',
+  desc: 'Click two points. The line is a great circle, drawn by sampling geo::interpolate.',
+  fn: 'geo::distance_between · geo::heading · geo::interpolate',
+  code: `geo::LatLng a{37.77, -122.42}, b{51.51, -0.13};
+double m   = geo::distance_between(a, b);  // meters
+double deg = geo::heading(a, b);           // 0..360`,
+  state() { return { pts: [] }; },
+  example(s) { s.pts = [L.latLng(37.7749, -122.4194), L.latLng(51.5074, -0.1278)]; map.fitBounds(L.latLngBounds(s.pts).pad(0.3)); },
+  click(s, ll) { if (s.pts.length >= 2) s.pts = []; s.pts.push(wrapLL(ll)); },
+  render(s, out) {
+    s.pts.forEach((p) => dot(p).addTo(layer));
+    if (s.pts.length < 2) { out.textContent = 'Click the first point' + (s.pts.length ? ', then the second.' : '.'); return; }
+    const [a, b] = s.pts;
+    L.polyline(arc(a, b), { color: '#0b6bcb', weight: 3 }).addTo(layer);
+    out.textContent = `distance  ${fmtM(g.distanceBetween(a.lat, a.lng, b.lat, b.lng))}\nheading   ${g.heading(a.lat, a.lng, b.lat, b.lng).toFixed(2)}°\nreverse   ${g.heading(b.lat, b.lng, a.lat, a.lng).toFixed(2)}°`;
+  },
+});
+
+// ---------------------------------------------------------------- 2. Offset
+tabs.push({
+  id: 'offset', title: 'Offset',
+  desc: 'Click to set the origin, then use the sliders: where do you end up after travelling this far on this heading?',
+  fn: 'geo::offset',
+  code: `geo::LatLng from{37.77, -122.42};
+geo::LatLng to = geo::offset(from, 50'000.0 /*m*/, 45.0 /*deg*/);`,
+  state() { return { o: L.latLng(37.7749, -122.4194), d: 50, h: 45 }; },
+  example(s) { s.o = L.latLng(48.8566, 2.3522); s.d = 1500; s.h = 80; map.setView(s.o, 5); },
+  controls: (s, update) => `
+    <label>Distance: <b id="dv"></b></label><input id="d" type="range" min="0" max="12000" step="1" value="${s.d}">
+    <label>Heading: <b id="hv"></b></label><input id="h" type="range" min="0" max="360" step="1" value="${s.h}">`,
+  bind(s, root, update) {
+    for (const k of ['d', 'h']) $('#' + k, root).oninput = (e) => { s[k] = +e.target.value; update(); };
+  },
+  click(s, ll) { s.o = wrapLL(ll); },
+  render(s, out, root) {
+    $('#dv', root).textContent = s.d + ' km'; $('#hv', root).textContent = s.h + '°';
+    dot(s.o).addTo(layer);
+    const pts = [];
+    for (let i = 0; i <= 60; i++) { const r = g.offset(s.o.lat, s.o.lng, s.d * 1000 * i / 60, s.h); pts.push(L.latLng(r[0], r[1])); }
+    L.polyline(pts, { color: '#0b6bcb', weight: 3 }).addTo(layer);
+    const e = pts[pts.length - 1];
+    dot(e, '#cf222e').addTo(layer);
+    out.textContent = `destination  ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}\ncheck: distance_between = ${fmtM(g.distanceBetween(s.o.lat, s.o.lng, e.lat, e.lng))}`;
+  },
+});
+
+// ---------------------------------------------------------------- 3. Geofence
+tabs.push({
+  id: 'geofence', title: 'Geofence',
+  desc: 'Click to add polygon vertices. Drag the marker: inside/outside, plus the distance to the nearest edge.',
+  fn: 'geo::contains · geo::on_edge · geo::closest_point_on_path',
+  code: `std::vector<geo::LatLng> fence = {...};
+bool in   = geo::contains(p, fence);        // add 'true' for geodesic edges
+bool edge = geo::on_edge(p, fence);
+auto  hit = geo::closest_point_on_path(p, closed_fence);  // ->distance`,
+  state() { return { poly: [], p: L.latLng(37.78, -122.42), geodesic: false }; },
+  example(s) {
+    s.poly = [L.latLng(37.80, -122.45), L.latLng(37.80, -122.40), L.latLng(37.76, -122.40), L.latLng(37.76, -122.45)];
+    s.p = L.latLng(37.78, -122.42); map.setView([37.78, -122.425], 13);
+  },
+  controls: (s) => `<label><input id="geod" type="checkbox" ${s.geodesic ? 'checked' : ''}> geodesic edges</label><div class="row"><button class="b" id="reset">Reset polygon</button></div>`,
+  bind(s, root, update) {
+    $('#geod', root).onchange = (e) => { s.geodesic = e.target.checked; update(); };
+    $('#reset', root).onclick = () => { s.poly = []; update(); };
+  },
+  click(s, ll) { s.poly.push(wrapLL(ll)); },
+  render(s, out) {
+    if (s.poly.length >= 3) L.polygon(s.poly, { color: '#0b6bcb', weight: 2, fillOpacity: 0.12 }).addTo(layer);
+    else if (s.poly.length) L.polyline(s.poly, { color: '#0b6bcb' }).addTo(layer);
+    s.poly.forEach((v) => dot(v, '#0b6bcb', 4).addTo(layer));
+    const m = L.marker(s.p, { draggable: true }).addTo(layer);
+    m.on('drag', (e) => { s.p = e.target.getLatLng(); renderOutOnly(); });
+    const renderOutOnly = () => { out.innerHTML = describe(); };
+    const describe = () => {
+      if (s.poly.length < 3) return 'Add at least 3 vertices.';
+      const f = flat(s.poly), inside = g.contains(s.p.lat, s.p.lng, f, s.geodesic);
+      return `<span class="${inside ? 'inside' : 'outside'}">${inside ? 'INSIDE' : 'OUTSIDE'}</span>\non edge (≤ 0.1 m): ${g.onEdge(s.p.lat, s.p.lng, f, s.geodesic, 0.1)}\nto nearest edge: ${fmtM(g.distanceToEdge(s.p.lat, s.p.lng, f))}`;
+    };
+    renderOutOnly();
+  },
+});
+
+// ---------------------------------------------------------------- 4. Polyline
+const EX5 = '_p~iF~ps|U_ulLnnqC_mqNvxq`@';
+tabs.push({
+  id: 'polyline', title: 'Polyline',
+  desc: 'Decode a Google Encoded Polyline (precision 5 or 6), or click on the map to draw a path and get its encoded string.',
+  fn: 'geo::decode · geo::encode',
+  code: `std::vector<geo::LatLng> pts = geo::decode(encoded);        // precision 5
+std::string s6 = geo::encode(pts, 6);                         // polyline6`,
+  state() { return { path: [], dec: [], text: '', prec: 5 }; },
+  example(s) { s.text = EX5; s.prec = 5; this.runDecode(s); },
+  controls: (s) => `
+    <label>Encoded polyline</label><textarea id="enc" spellcheck="false">${esc(s.text)}</textarea>
+    <div class="row"><select id="prec" style="width:auto"><option value="5">precision 5</option><option value="6">precision 6</option></select>
+      <button class="b primary" id="dec">Decode &amp; draw</button>
+      <button class="b" id="ex5">Example (p5)</button><button class="b" id="ex6">Example (p6)</button></div>
+    <label>Drawn path → encoded (precision <span id="pp"></span>)</label><textarea id="encout" readonly></textarea>
+    <div class="row"><button class="b" id="copy">Copy</button><button class="b" id="clr">Clear drawn path</button></div>`,
+  runDecode(s) {
+    s.err = ''; s.dec = [];
+    const t = s.text.trim();
+    if (!t) { s.err = 'Paste an encoded polyline.'; return; }
+    if (!/^[\x3f-\x7e]+$/.test(t)) { s.err = 'Not a polyline: allowed characters are ? through ~ (ASCII 63–126).'; return; }
+    const pts = unflat(Array.from(g.decode(t, s.prec)));
+    if (!pts.length) { s.err = 'Decoded to zero points.'; return; }
+    if (pts.some((p) => Math.abs(p.lat) > 90 || Math.abs(p.lng) > 180)) { s.err = `Decoded coordinates are out of range — wrong precision? (tried ${s.prec})`; return; }
+    s.dec = pts; s.canonical = g.encode(flat(pts), s.prec) === t;
+    map.fitBounds(L.latLngBounds(pts).pad(0.2));
+  },
+  bind(s, root, update) {
+    $('#prec', root).value = String(s.prec);
+    $('#enc', root).oninput = (e) => { s.text = e.target.value; };
+    $('#prec', root).onchange = (e) => { s.prec = +e.target.value; update(); };
+    $('#dec', root).onclick = () => { this.runDecode(s); update(); };
+    $('#ex5', root).onclick = () => { s.text = EX5; s.prec = 5; this.runDecode(s); select(current); };
+    $('#ex6', root).onclick = () => { s.prec = 6; s.text = g.encode([37.7749, -122.4194, 37.8044, -122.2712, 37.8716, -122.2727, 38.5816, -121.4944], 6); this.runDecode(s); select(current); };
+    $('#clr', root).onclick = () => { s.path = []; update(); };
+    $('#copy', root).onclick = async () => { const v = $('#encout', root).value; try { await navigator.clipboard.writeText(v); } catch { $('#encout', root).select(); document.execCommand('copy'); } };
+  },
+  click(s, ll) { s.path.push(wrapLL(ll)); },
+  render(s, out, root) {
+    $('#pp', root).textContent = s.prec;
+    if (s.dec.length) { L.polyline(s.dec, { color: '#0b6bcb', weight: 4 }).addTo(layer); s.dec.forEach((p) => dot(p, '#0b6bcb', 3).addTo(layer)); }
+    if (s.path.length) { L.polyline(s.path, { color: '#cf222e', weight: 3, dashArray: '6 4' }).addTo(layer); s.path.forEach((p) => dot(p, '#cf222e', 4).addTo(layer)); }
+    $('#encout', root).value = s.path.length ? g.encode(flat(s.path), s.prec) : '';
+    out.innerHTML = s.err ? `<span class="err">${esc(s.err)}</span>`
+      : s.dec.length ? `decoded ${s.dec.length} points, length ${fmtM(g.pathLength(flat(s.dec)))}${s.canonical ? '' : '\n(note: re-encoding differs from the input — non-canonical or lossy)'}`
+      : 'Decode a polyline above, or click the map to draw a path.';
+  },
+});
+
+// ---------------------------------------------------------------- 5. Simplify
+function wiggle() {
+  const pts = [], o = [37.74, -122.50];
+  for (let i = 0; i <= 80; i++) {
+    const along = i * 150, side = Math.sin(i / 5) * 400 + Math.sin(i * 1.9) * 60;
+    const a = g.offset(o[0], o[1], along, 90), b = g.offset(a[0], a[1], Math.abs(side), side >= 0 ? 0 : 180);
+    pts.push(L.latLng(b[0], b[1]));
+  }
+  return pts;
+}
+tabs.push({
+  id: 'simplify', title: 'Simplify',
+  desc: 'Douglas–Peucker. Draw a path (or load the example) and drag the tolerance slider.',
+  fn: 'geo::simplify',
+  code: `std::vector<geo::LatLng> slim = geo::simplify(path, 50.0 /*m*/);
+// slim.size() <= path.size(); endpoints are always kept`,
+  state() { return { path: [], tol: 100, geodesic: false }; },
+  example(s) { s.path = wiggle(); s.tol = 150; map.fitBounds(L.latLngBounds(s.path).pad(0.1)); },
+  controls: (s) => `<label>Tolerance: <b id="tv"></b></label><input id="tol" type="range" min="0" max="1500" step="5" value="${s.tol}">
+    <label><input id="geod" type="checkbox"> geodesic</label><div class="row"><button class="b" id="clr">Clear path</button></div>`,
+  bind(s, root, update) {
+    $('#tol', root).oninput = (e) => { s.tol = +e.target.value; update(); };
+    $('#geod', root).onchange = (e) => { s.geodesic = e.target.checked; update(); };
+    $('#clr', root).onclick = () => { s.path = []; update(); };
+  },
+  click(s, ll) { s.path.push(wrapLL(ll)); },
+  render(s, out, root) {
+    $('#tv', root).textContent = s.tol + ' m';
+    if (s.path.length < 2) { s.path.forEach((p) => dot(p).addTo(layer)); out.textContent = 'Click to draw a path (≥ 2 points), or press “Load example”.'; return; }
+    const slim = unflat(Array.from(g.simplify(flat(s.path), s.tol, s.geodesic)));
+    L.polyline(s.path, { color: '#8b949e', weight: 3 }).addTo(layer);
+    L.polyline(slim, { color: '#cf222e', weight: 3 }).addTo(layer);
+    slim.forEach((p) => dot(p, '#cf222e', 4).addTo(layer));
+    out.textContent = `points: ${s.path.length} → ${slim.length}\nlength: ${fmtM(g.pathLength(flat(s.path)))} → ${fmtM(g.pathLength(flat(slim)))}`;
+  },
+});
+
+// ---------------------------------------------------------------- 6. Snap
+tabs.push({
+  id: 'snap', title: 'Snap to route',
+  desc: 'Drag the marker: it is projected onto the nearest segment of the path. Click the map to draw your own path.',
+  fn: 'geo::closest_point_on_path · geo::path_length',
+  code: `auto hit = geo::closest_point_on_path(gps_fix, route);
+if (hit) {  // hit->point, hit->segment, hit->distance (m)
+  double along = geo::path_length(prefix) + geo::distance_between(route[hit->segment], hit->point);
+}`,
+  state() { return { path: [], p: L.latLng(37.83, -122.30) }; },
+  example(s) { s.path = unflat([37.7749, -122.4194, 37.8044, -122.2712, 37.8716, -122.2727, 38.5816, -121.4944]); s.p = L.latLng(37.83, -122.30); map.fitBounds(L.latLngBounds(s.path).pad(0.15)); },
+  controls: () => `<div class="row"><button class="b" id="clr">Clear &amp; draw new path</button></div>`,
+  bind(s, root, update) { $('#clr', root).onclick = () => { s.path = []; update(); }; },
+  click(s, ll) { s.path.push(wrapLL(ll)); },
+  render(s, out) {
+    if (s.path.length) L.polyline(s.path, { color: '#0b6bcb', weight: 4 }).addTo(layer);
+    s.path.forEach((p) => dot(p, '#0b6bcb', 3).addTo(layer));
+    const proj = L.polyline([], { color: '#cf222e', dashArray: '4 4' }).addTo(layer), pm = dot(s.p, '#1a7f37', 6).addTo(layer);
+    const m = L.marker(s.p, { draggable: true }).addTo(layer);
+    const upd = () => {
+      if (s.path.length < 2) { out.textContent = 'Draw a path with at least 2 points.'; return; }
+      const r = Array.from(g.closestPointOnPath(s.p.lat, s.p.lng, flat(s.path)));
+      proj.setLatLngs([s.p, L.latLng(r[0], r[1])]); pm.setLatLng(L.latLng(r[0], r[1]));
+      out.textContent = `snapped   ${r[0].toFixed(5)}, ${r[1].toFixed(5)}\nsegment   ${r[2]}\noff route ${fmtM(r[3])}\nalong     ${fmtM(r[4])} of ${fmtM(g.pathLength(flat(s.path)))}`;
+    };
+    m.on('drag', (e) => { s.p = e.target.getLatLng(); upd(); });
+    upd();
+  },
+});
+
+// ---------------------------------------------------------------- 7. Area
+tabs.push({
+  id: 'area', title: 'Area',
+  desc: 'Click to outline a polygon. The area is spherical, not planar — try a big one.',
+  fn: 'geo::area · geo::path_length',
+  code: `double m2 = geo::area(polygon);     // square meters, on the sphere
+double pm = geo::path_length(closed_polygon);`,
+  state() { return { poly: [] }; },
+  example(s) { s.poly = unflat([41, -109.05, 41, -102.05, 37, -102.05, 37, -109.05]); map.fitBounds(L.latLngBounds(s.poly).pad(0.2)); },
+  controls: () => `<div class="row"><button class="b" id="clr">Reset polygon</button></div>`,
+  bind(s, root, update) { $('#clr', root).onclick = () => { s.poly = []; update(); }; },
+  click(s, ll) { s.poly.push(wrapLL(ll)); },
+  render(s, out) {
+    if (s.poly.length >= 3) L.polygon(s.poly, { color: '#0b6bcb', weight: 2, fillOpacity: 0.15 }).addTo(layer);
+    else if (s.poly.length) L.polyline(s.poly, { color: '#0b6bcb' }).addTo(layer);
+    s.poly.forEach((p) => dot(p, '#0b6bcb', 4).addTo(layer));
+    if (s.poly.length < 3) { out.textContent = 'Add at least 3 vertices.'; return; }
+    const f = flat(s.poly), m2 = g.area(f), per = g.pathLength(f.concat(f.slice(0, 2)));
+    out.textContent = `area       ${fmtA(m2)}\n           ${(m2 / 1e4).toFixed(2)} ha\nperimeter  ${fmtM(per)}`;
+  },
+});
+
+// ---------------------------------------------------------------- shell
+const nav = $('#tabs'), panel = $('#panel');
+tabs.forEach((t) => {
+  t.s = t.state();
+  t.btn = document.createElement('button');
+  t.btn.textContent = t.title; t.btn.setAttribute('role', 'tab');
+  t.btn.onclick = () => select(t);
+  nav.append(t.btn);
+});
+
+function select(t, loadExample = false) {
+  current = t;
+  tabs.forEach((x) => x.btn.setAttribute('aria-selected', x === t));
+  panel.innerHTML = `<h2>${t.title}</h2><p class="desc">${t.desc}</p>
+    <div class="row"><button class="b primary" id="exbtn">Load example</button></div>
+    <div id="ctl">${t.controls ? t.controls(t.s) : ''}</div><div class="out" id="out"></div>
+    <div class="fn">Calls <b>${t.fn}</b></div><pre class="code">${esc(t.code)}</pre>`;
+  const update = (fit) => draw();
+  if (t.bind) t.bind(t.s, $('#ctl'), update);
+  $('#exbtn').onclick = () => { t.s = t.state(); t.example(t.s); select(t); };
+  if (!t.shown) { t.shown = true; t.example(t.s); if (t.bind) { select(t); return; } }
+  draw();
+}
+function draw() {
+  layer.clearLayers();
+  try { current.render(current.s, $('#out'), $('#ctl')); }
+  catch (e) { console.error(e); $('#out').innerHTML = `<span class="err">${esc(e.message || e)}</span>`; }
+}
+map.on('click', (e) => { current.click(current.s, e.latlng); draw(); });
+
+select(tabs[0]);
+</script>
+</body>
+</html>
