@@ -205,7 +205,7 @@ include(FetchContent)
 FetchContent_Declare(
     GeoUtilsCpp
     GIT_REPOSITORY https://github.com/gistrec/geo-utils-cpp.git
-    GIT_TAG        v1.2.2
+    GIT_TAG        v1.2.3
 )
 FetchContent_MakeAvailable(GeoUtilsCpp)
 
@@ -213,7 +213,7 @@ target_link_libraries(your_target PRIVATE geo::utils)
 ```
 
 <details>
-<summary><b>Other package managers</b> — vcpkg · xrepo · Conan · Meson · build2 · single-header · CMake wiring</summary>
+<summary><b>Other package managers</b> — vcpkg · xrepo · Conan · Meson · build2 · Arduino · PlatformIO · ESP-IDF · single-header · CMake wiring</summary>
 
 ### vcpkg
 
@@ -239,7 +239,7 @@ target("your_target")
 ### Conan
 
 ```sh
-conan install --requires=geo-utils-cpp/1.2.2 --build=missing
+conan install --requires=geo-utils-cpp/1.2.3 --build=missing
 ```
 
 Conan Center support is pending
@@ -284,7 +284,7 @@ example smoke test is skipped automatically when built as a subproject.
 Add the dependency to your package's `manifest`:
 
 ```
-depends: libgeo-utils-cpp ^1.2.2
+depends: libgeo-utils-cpp ^1.2.3
 ```
 
 And in the consuming `buildfile`:
@@ -304,6 +304,30 @@ role: prerequisite
 location: https://pkg.cppget.org/1/testing
 ```
 
+### Embedded: Arduino, PlatformIO, ESP-IDF
+
+The library has no platform-specific code, so it builds with any C++17-capable
+microcontroller toolchain.
+
+- **Arduino Library Manager**: install `GeoUtils`, then `#include <GeoUtils.h>`
+  (a shim for `<geo/geo.hpp>`). It needs a core that compiles as C++17 or newer:
+  ESP32 core 3.x, ESP8266 3.x, arduino-pico (RP2040), STM32duino, UNO R4.
+  Cores still on gnu++11 (AVR, SAMD, ESP32 core 2.x) stop with one `#error`.
+- **PlatformIO**: `lib_deps = gistrec/geo-utils-cpp`, then `#include <geo/geo.hpp>`
+  (or `<GeoUtils.h>`). For RP2040 use the arduino-pico core
+  (`platform = https://github.com/maxgerhardt/platform-raspberrypi.git`); the
+  registry's `raspberrypi` platform is Mbed-based and compiles as gnu++14.
+- **ESP-IDF**: `idf.py add-dependency "gistrec/geo-utils-cpp"`, then
+  `#include <geo/geo.hpp>`. IDF 5.x already compiles C++ as gnu++2b.
+
+Platforms whose core predates C++17, e.g. PlatformIO's `espressif32@6`
+(Arduino core 2.x), need the standard raised in `platformio.ini`:
+
+```ini
+build_unflags = -std=gnu++11
+build_flags   = -std=gnu++17
+```
+
 ### Manual / single-header
 
 Copy the `include/` directory into your project and add it to your include
@@ -317,7 +341,7 @@ With any of the above methods (vcpkg, xrepo, Conan, FetchContent, or a
 system `find_package`), wire it into your build with:
 
 ```cmake
-find_package(GeoUtilsCpp 1.2.2 REQUIRED)
+find_package(GeoUtilsCpp 1.2.3 REQUIRED)
 target_link_libraries(your_target PRIVATE geo::utils)
 ```
 
@@ -334,6 +358,7 @@ Any toolchain with complete C++17 support. Continuous integration builds and tes
 | Linux | GCC, Clang | built at `-Wall -Wextra -Wpedantic -Werror` |
 | macOS | AppleClang | built at `-Wall -Wextra -Wpedantic -Werror` |
 | Windows | MSVC | default warning level |
+| Embedded | ESP-IDF 5.5, Arduino ESP32 3.x, arduino-pico (RP2040) | compile-only, `Embedded` workflow |
 
 The full test suite also runs under AddressSanitizer + UndefinedBehaviorSanitizer, with a libFuzzer
 smoke test over `geo::decode`. The library needs only C++17; the optional CMake integration requires

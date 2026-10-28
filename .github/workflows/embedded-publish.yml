@@ -1,0 +1,53 @@
+# Publishes a released version to the PlatformIO Registry and the ESP
+# Component Registry. Runs only when a release is *published*, i.e. when the
+# maintainer flips the draft created by release-assets.yml to public
+# (RELEASING.md §2): never on the tag push itself and never from a PR.
+# Arduino Library Manager needs nothing here: its indexer picks up the new
+# tag on its own (library.properties).
+#
+# Both registries are immutable: an existing version is skipped by the ESP
+# action and rejected by PlatformIO, so re-running a failed job is safe.
+# The ESP trusted uploader is keyed on this file's name: don't rename it.
+
+name: Embedded publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  platformio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+      - name: Install PlatformIO
+        run: pip install platformio
+      # Cheap guard against publishing a manifest that lags the tag: the
+      # registry would freeze the wrong number forever.
+      - name: Check library.json matches the release tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: test "$(jq -r .version library.json)" = "${TAG#v}"
+      - name: Publish to the PlatformIO Registry
+        env:
+          PLATFORMIO_AUTH_TOKEN: ${{ secrets.PLATFORMIO_AUTH_TOKEN }}
+        run: pio pkg publish --no-interactive
+
+  esp-component-registry:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # OIDC: the registry trusts this workflow, no API token
+    steps:
+      - uses: actions/checkout@v7
+      - uses: espressif/upload-components-ci-action@v2
+        with:
+          namespace: gistrec
+          components: "geo-utils-cpp: ."
+          version: ${{ github.event.release.tag_name }}

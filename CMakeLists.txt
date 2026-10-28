@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
-project(GeoUtilsCpp VERSION 1.2.2 LANGUAGES CXX)
+
+# ESP-IDF pulls this file in as a component (see idf_component.yml): register
+# the headers and stop before project(), which IDF's script-mode pass does
+# not allow. Every other build path falls through unchanged.
+if(ESP_PLATFORM)
+    idf_component_register(INCLUDE_DIRS include)
+    return()
+endif()
+
+project(GeoUtilsCpp VERSION 1.2.3 LANGUAGES CXX)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(_geo_utils_cpp_is_top_level ON)
@@ -71,9 +80,20 @@ if(GEO_UTILS_CPP_BUILD_TESTS)
     target_link_libraries(geo_utils_cpp_tests
         PRIVATE geo::utils GTest::GTest GTest::Main
     )
-    # Lets the suite assert that <geo/version.hpp> matches project(VERSION).
+    # Lets the suite assert that <geo/version.hpp> matches project(VERSION)
+    # and the two embedded manifests that carry their own copy of it.
+    file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/library.properties
+        _geo_utils_cpp_arduino_version REGEX "^version=")
+    string(REGEX REPLACE "^version=" "" _geo_utils_cpp_arduino_version
+        "${_geo_utils_cpp_arduino_version}")
+    file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/library.json
+        _geo_utils_cpp_platformio_version REGEX "\"version\"")
+    string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" _geo_utils_cpp_platformio_version
+        "${_geo_utils_cpp_platformio_version}")
     target_compile_definitions(geo_utils_cpp_tests PRIVATE
         GEO_UTILS_CPP_TEST_CMAKE_VERSION="${PROJECT_VERSION}"
+        GEO_UTILS_CPP_TEST_ARDUINO_VERSION="${_geo_utils_cpp_arduino_version}"
+        GEO_UTILS_CPP_TEST_PLATFORMIO_VERSION="${_geo_utils_cpp_platformio_version}"
     )
     gtest_discover_tests(geo_utils_cpp_tests)
 

@@ -1,0 +1,41 @@
+# ESP Component Registry manifest: components.espressif.com/components/gistrec/geo-utils-cpp
+# No `version:` on purpose: the publish workflow passes the release tag, so the
+# manifest can't drift from it. The build glue is the ESP_PLATFORM block at the
+# top of CMakeLists.txt (header-only component, INCLUDE_DIRS include).
+description: Header-only C++17 geographic geometry (great-circle distance, bearing, polygons, encoded polylines)
+url: https://github.com/gistrec/geo-utils-cpp
+repository: https://github.com/gistrec/geo-utils-cpp.git
+license: Apache-2.0
+maintainers:
+  - "Aleksandr Kovalko <gistrec@gmail.com>"
+tags:
+  - geo
+  - gps
+  - geometry
+  - polyline
+  - header-only
+dependencies:
+  idf: ">=5.0"
+files:
+  # build/, .git/, .github/, managed_components/, sdkconfig* are excluded by default.
+  # examples/ holds CMake/Arduino examples, not IDF projects: keep the registry
+  # from scanning them. src/ is the Arduino-only shim.
+  exclude:
+    - "tests/**"
+    - "benchmarks/**"
+    - "demo/**"
+    - "docs/**"
+    - "tools/**"
+    - "cmake/**"
+    - "examples/**"
+    - "src/**"
+    - "build-*/**"
+    - ".bdep/**"
+    - ".claude/**"
+    - "meson.build"
+    - "meson_options.txt"
+    - "manifest"
+    - "buildfile"
+    - "library.json"
+    - "library.properties"
+    - ".codacy.yaml"

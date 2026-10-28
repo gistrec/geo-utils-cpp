@@ -54,3 +54,10 @@ Thumbs.db
 # WebAssembly demo build output (see demo/README.md)
 demo/web/geo.js
 demo/web/geo.wasm
+
+# ESP-IDF smoke project (tests/espidf/) build output
+tests/espidf/build/
+tests/espidf/sdkconfig
+tests/espidf/sdkconfig.old
+tests/espidf/managed_components/
+tests/espidf/dependencies.lock

@@ -17,6 +17,13 @@ Grep first — this list has grown before: `grep -rn "<previous version>"
       build2 `depends:`, `find_package` example; re-check the
       "N KB across M headers" line if headers changed
 - [ ] `docs/getting-started.md` — same four spots
+- [ ] `docs/api.md` — the `GEO_UTILS_CPP_VERSION_STRING` example
+- [ ] `library.properties` (Arduino) — `version=X.Y.Z`, and `library.json`
+      (PlatformIO) — `"version": "X.Y.Z"`; the test suite fails if either
+      disagrees with CMake. `idf_component.yml` has no version: the publish
+      workflow passes the tag
+- [ ] `README.md` Meson wrap block — only after tagging (its `source_hash`
+      needs the tarball, see step 3), in a follow-up commit
 - [ ] `CHANGELOG.md` — new `## vX.Y.Z` section at the top (Added / Fixed /
       Docs / Unchanged), following the existing tone
 
@@ -44,6 +51,11 @@ git push origin vX.Y.Z
 gh release view vX.Y.Z --json isDraft,assets --jq '{draft: .isDraft, assets: [.assets[].name]}'
 gh release edit vX.Y.Z --draft=false
 ```
+
+Publishing fires `Embedded publish` (PlatformIO Registry + ESP Component
+Registry): check `gh run list --workflow embedded-publish.yml`. A failed job
+can be re-run from the Actions tab once the cause is fixed; both registries
+skip or reject versions they already have.
 
 Fallback if the workflow failed: `python3 tools/amalgamate.py -o geo.hpp`,
 then `gh release create vX.Y.Z --draft --title "vX.Y.Z" --notes-file
@@ -128,11 +140,24 @@ and auto-promotes into the `testing` repository after a successful queue
 build; the queue URL 404s once promoted. `stable` promotion is a separate,
 maintainer-gated process.
 
+### Arduino, PlatformIO, ESP Component Registry
+
+- [ ] Arduino Library Manager: nothing to do. The indexer picks up the new
+      tag within about an hour, as long as `library.properties` was bumped.
+- [ ] PlatformIO and ESP: automatic on publish (step 2). Manual fallback,
+      from a **clean clone at the tag** (untracked files would be shipped):
+      `PLATFORMIO_AUTH_TOKEN=… pio pkg publish --no-interactive`;
+      `pip install idf-component-manager && compote component upload
+      --namespace gistrec --name geo-utils-cpp --version X.Y.Z`
+
 ## 5. Afterwards
 
 - [ ] Double-check the published release shows the single-header `geo.hpp`
       asset (it must be attached while the release is still a draft — see
       step 2; immutable releases cannot gain assets after publishing).
+- [ ] Verify `pio pkg show gistrec/geo-utils-cpp`, the
+      [ESP registry page](https://components.espressif.com/components/gistrec/geo-utils-cpp)
+      and the Arduino IDE Library Manager search for `GeoUtils`.
 - [ ] Verify the release page, the four registry submissions, and that the
       README badges still resolve.
 - [ ] When registry PRs merge, spot-check one install path
