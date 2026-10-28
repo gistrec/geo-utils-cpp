@@ -17,3 +17,11 @@ TEST(Version, matches_cmake_project_version) {
     // and not the other — see RELEASING.md.
     EXPECT_STREQ(GEO_UTILS_CPP_VERSION_STRING, GEO_UTILS_CPP_TEST_CMAKE_VERSION);
 }
+
+TEST(Version, matches_embedded_manifests) {
+    // library.properties (Arduino) and library.json (PlatformIO) carry their
+    // own copy of the version; the test CMakeLists reads them into these
+    // macros. idf_component.yml has none: the publish workflow passes the tag.
+    EXPECT_STREQ(GEO_UTILS_CPP_VERSION_STRING, GEO_UTILS_CPP_TEST_ARDUINO_VERSION);
+    EXPECT_STREQ(GEO_UTILS_CPP_VERSION_STRING, GEO_UTILS_CPP_TEST_PLATFORMIO_VERSION);
+}

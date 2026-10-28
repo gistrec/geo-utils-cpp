@@ -32,7 +32,7 @@ include(FetchContent)
 FetchContent_Declare(
     GeoUtilsCpp
     GIT_REPOSITORY https://github.com/gistrec/geo-utils-cpp.git
-    GIT_TAG        v1.2.2
+    GIT_TAG        v1.2.3
 )
 FetchContent_MakeAvailable(GeoUtilsCpp)
 
@@ -64,7 +64,7 @@ for new projects, since the manifest commits alongside your source):
 Either mode, then consume it from CMake:
 
 ```cmake
-find_package(GeoUtilsCpp 1.2.2 REQUIRED)
+find_package(GeoUtilsCpp 1.2.3 REQUIRED)
 target_link_libraries(your_target PRIVATE geo::utils)
 ```
 
@@ -98,13 +98,23 @@ for the xmake variant.
 ### Conan
 
 ```sh
-conan install --requires=geo-utils-cpp/1.2.2 --build=missing
+conan install --requires=geo-utils-cpp/1.2.3 --build=missing
 ```
 
 Conan Center support is pending
 [conan-io/conan-center-index#30152](https://github.com/conan-io/conan-center-index/pull/30152);
 until that lands, the `conan install` line above requires the recipe from
 that PR (or use one of the other installation methods).
+
+### Arduino / PlatformIO / ESP-IDF
+
+- Arduino Library Manager: `GeoUtils`, then `#include <GeoUtils.h>`.
+- PlatformIO: `lib_deps = gistrec/geo-utils-cpp`.
+- ESP-IDF: `idf.py add-dependency "gistrec/geo-utils-cpp"`.
+
+All three need a C++17-capable core (ESP32 core 3.x, ESP8266 3.x,
+arduino-pico, STM32duino, UNO R4). See the README's "Embedded" section for
+older cores.
 
 ### System install
 
@@ -117,7 +127,7 @@ cmake --install build-cmake --prefix /usr/local
 ```
 
 ```cmake
-find_package(GeoUtilsCpp 1.2.2 REQUIRED)
+find_package(GeoUtilsCpp 1.2.3 REQUIRED)
 target_link_libraries(your_target PRIVATE geo::utils)
 ```
 

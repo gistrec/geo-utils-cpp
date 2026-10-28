@@ -1,0 +1,118 @@
+# Embedded-ecosystem smoke builds. Each job compiles the library the way one
+# registry's consumers get it, so the manifests can't drift from the headers:
+#   - esp-idf:      tests/espidf/ pulls the repo root in as a local component
+#                   (idf_component.yml + the ESP_PLATFORM block in CMakeLists.txt)
+#                   and builds with idf.py in the official espressif/idf image
+#   - platformio:   `pio ci` builds examples/GeoUtils/GeoUtils.ino against
+#                   library.json for one ESP32 and one RP2040 environment
+#                   (tests/platformio/platformio.ini)
+#   - arduino:      arduino-cli builds the same sketch on the ESP32 and
+#                   arduino-pico cores (library.properties, src/GeoUtils.h)
+#   - arduino-lint: Library Manager "submit" checks. Switch to "update" once
+#                   the library is in the index: LP017/LP018 are mode-specific.
+#
+# Triggered on push/PR to master/main when embedded-facing files change (see
+# the paths filter), plus manual dispatch.
+
+name: Embedded
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - 'examples/GeoUtils/**'
+      - 'tests/espidf/**'
+      - 'tests/platformio/**'
+      - 'CMakeLists.txt'
+      - 'idf_component.yml'
+      - 'library.json'
+      - 'library.properties'
+      - '.github/workflows/embedded.yml'
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - 'examples/GeoUtils/**'
+      - 'tests/espidf/**'
+      - 'tests/platformio/**'
+      - 'CMakeLists.txt'
+      - 'idf_component.yml'
+      - 'library.json'
+      - 'library.properties'
+      - '.github/workflows/embedded.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  esp-idf:
+    name: esp-idf v5.5 (esp32)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.5
+          target: esp32
+          path: tests/espidf
+
+  platformio:
+    name: platformio (${{ matrix.env }})
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [esp32dev, rpipico]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+      - name: Install PlatformIO
+        run: pip install platformio
+      - name: Build the example sketch
+        run: >
+          pio ci examples/GeoUtils/GeoUtils.ino --lib=.
+          --project-conf=tests/platformio/platformio.ini
+          --environment=${{ matrix.env }}
+
+  arduino:
+    name: arduino (${{ matrix.fqbn }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fqbn: esp32:esp32:esp32
+            platform: esp32:esp32
+            index: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          - fqbn: rp2040:rp2040:rpipico
+            platform: rp2040:rp2040
+            index: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: ${{ matrix.fqbn }}
+          platforms: |
+            - name: ${{ matrix.platform }}
+              source-url: ${{ matrix.index }}
+          sketch-paths: |
+            - examples/GeoUtils
+
+  arduino-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: arduino/arduino-lint-action@v3
+        with:
+          project-type: library
+          library-manager: submit

@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.2.3
+
+Tooling-only release: the library is now on the embedded registries:
+Arduino Library Manager (`GeoUtils`), PlatformIO Registry and ESP Component
+Registry (`gistrec/geo-utils-cpp`). Headers are identical to v1.2.2 apart
+from the version macros.
+
+### Added
+
+- **Arduino**: `library.properties`, a `src/GeoUtils.h` shim that forwards
+  to `<geo/geo.hpp>` and stops older cores with one C++17 `#error`, and an
+  `examples/GeoUtils/GeoUtils.ino` sketch.
+- **PlatformIO**: `library.json`.
+- **ESP-IDF**: `idf_component.yml` plus an `ESP_PLATFORM` block at the top
+  of `CMakeLists.txt` that registers the headers as an IDF component.
+- **CI**: the `Embedded` workflow builds the library with ESP-IDF 5.5,
+  PlatformIO (ESP32, RP2040) and arduino-cli (ESP32, arduino-pico), and runs
+  arduino-lint. `Embedded publish` uploads to PlatformIO and the ESP
+  registry when a release is published. The version test now also checks
+  `library.properties` and `library.json`.
+
+### Unchanged (downstream-compatible)
+
+- Nothing changes for CMake, vcpkg, Conan, xrepo, build2 or Meson
+  consumers: the new manifests and `src/GeoUtils.h` are not installed, not
+  in the build2 package and not in the single-header `geo.hpp`.
+
 ## v1.2.2
 
 Tooling-only release: adds a native Meson build so the library can be

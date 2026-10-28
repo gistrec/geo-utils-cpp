@@ -1,0 +1,30 @@
+{
+  "name": "geo-utils-cpp",
+  "version": "1.2.3",
+  "description": "Header-only C++17 geographic geometry: great-circle distance, bearing, polygon area, point-in-polygon, snap-to-route, encoded polylines",
+  "keywords": ["geo", "gps", "haversine", "geodesic", "polyline", "polygon", "header-only"],
+  "homepage": "https://github.com/gistrec/geo-utils-cpp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gistrec/geo-utils-cpp.git"
+  },
+  "authors": [
+    {
+      "name": "Aleksandr Kovalko",
+      "email": "gistrec@gmail.com",
+      "maintainer": true
+    }
+  ],
+  "license": "Apache-2.0",
+  "frameworks": "*",
+  "platforms": "*",
+  "headers": ["geo/geo.hpp", "GeoUtils.h"],
+  "export": {
+    "exclude": [
+      "tests", "benchmarks", "demo", "docs", "tools", "cmake",
+      "build", "build-*", ".github", ".bdep", ".claude",
+      "examples/*.cpp", "examples/CMakeLists.txt",
+      "meson.build", "meson_options.txt", "manifest", "buildfile", ".codacy.yaml"
+    ]
+  }
+}
